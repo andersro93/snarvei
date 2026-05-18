@@ -1,0 +1,44 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "snarvei",
+  "main": "./src/worker/index.ts",
+  "compatibility_date": "2025-10-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  },
+  "upload_source_maps": true,
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "snarvei",
+      "database_id": "a506e6e7-0da6-49fe-9ee5-bd57a5999f21",
+      "migrations_dir": "./src/worker/db/migrations"
+    }
+  ],
+  "vars": {
+    "APP_URL": "https://snarvei.ros-nett.com",
+    "APP_NAME": "Snarvei"
+  },
+  "env": {
+    "dev": {
+      "name": "snarvei-dev",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "snarvei-dev",
+          "database_id": "5de8c0b4-6496-4818-adfa-3599f17c3a9b",
+          "migrations_dir": "./src/worker/db/migrations"
+        }
+      ],
+      "vars": {
+        "APP_URL": "https://snarvei-dev.ros-nett.com",
+        "APP_NAME": "Snarvei - DEV"
+      }
+    }
+  }
+}
