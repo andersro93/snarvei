@@ -587,6 +587,7 @@ export function App() {
     }
 
     const createdLink = (await response.json()) as Link;
+    setLoadedTeamId(effectiveTeamId);
     setLinks((current) => [createdLink, ...current]);
     setSelectedLinkId(createdLink.id);
     setLinkTarget("https://example.com/next-destination");
