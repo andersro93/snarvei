@@ -3,7 +3,7 @@ import Groups2Icon from "@mui/icons-material/Groups2";
 import InsightsIcon from "@mui/icons-material/Insights";
 import LoginIcon from "@mui/icons-material/Login";
 import LogoutIcon from "@mui/icons-material/Logout";
-import MailOutlineIcon from "@mui/icons-material/MailOutline";
+import MailOutlineIcon from "@mui/icons-material/MailOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import {
@@ -698,7 +698,7 @@ export function App() {
 
   if (sessionPending) {
     return (
-      <Box minHeight="100vh" display="grid" sx={{ placeItems: "center" }}>
+      <Box sx={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
         <CircularProgress />
       </Box>
     );
@@ -706,8 +706,8 @@ export function App() {
 
   return (
     <Box
-      minHeight="100vh"
       sx={{
+        minHeight: "100vh",
         background: "radial-gradient(circle at top, rgba(139,92,246,0.24), transparent 35%), #070b16",
       }}
     >
@@ -718,7 +718,7 @@ export function App() {
         sx={{ backdropFilter: "blur(24px)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}
       >
         <Toolbar sx={{ justifyContent: "space-between" }}>
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
             <Box
               sx={{
                 width: 40,
@@ -728,7 +728,7 @@ export function App() {
               }}
             />
             <Box>
-              <Typography variant="h6" fontWeight={700}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 Snarvei
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -737,7 +737,7 @@ export function App() {
             </Box>
           </Stack>
           {session ? (
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
               <Button color="inherit" startIcon={<RefreshIcon />} onClick={() => void refreshWorkspace()}>
                 Refresh
               </Button>
@@ -757,7 +757,7 @@ export function App() {
         ) : null}
 
         {!session ? (
-          <Grid container spacing={4} alignItems="stretch">
+          <Grid container spacing={4} sx={{ alignItems: "stretch" }}>
             <Grid size={{ xs: 12, md: 7 }}>
               <Paper
                 sx={{
@@ -768,13 +768,13 @@ export function App() {
                 }}
               >
                 <Chip label="V1 foundation" color="secondary" sx={{ mb: 2 }} />
-                <Typography variant="h2" fontWeight={800} lineHeight={1.05} sx={{ maxWidth: 720 }}>
+                <Typography variant="h2" sx={{ fontWeight: 800, lineHeight: 1.05, maxWidth: 720 }}>
                   Short links you can trust long after they are shared.
                 </Typography>
                 <Typography variant="h6" color="text.secondary" sx={{ mt: 2, maxWidth: 680 }}>
                   Manage links by organization and team, update destinations safely, and track every click through a single Cloudflare-native control plane.
                 </Typography>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mt={4}>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mt: 4 }}>
                   <Chip label="Cloudflare Workers" />
                   <Chip label="Better Auth organizations + teams" />
                   <Chip label="OpenAPI + Scalar" />
@@ -785,7 +785,7 @@ export function App() {
               <Card sx={{ border: "1px solid rgba(255,255,255,0.08)" }}>
                 <CardContent sx={{ p: 4 }}>
                   <Stack spacing={2}>
-                    <Typography variant="h5" fontWeight={700}>
+                    <Typography variant="h5" sx={{ fontWeight: 700 }}>
                       Sign in or create your first workspace
                     </Typography>
                     <TextField
@@ -838,10 +838,10 @@ export function App() {
               {quickStats.map((item) => (
                 <Grid key={item.label} size={{ xs: 12, md: 4 }}>
                   <Paper sx={{ p: 3, border: "1px solid rgba(255,255,255,0.08)" }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
                       <Box>
                         <Typography color="text.secondary">{item.label}</Typography>
-                        <Typography variant="h3" fontWeight={800}>
+                        <Typography variant="h3" sx={{ fontWeight: 800 }}>
                           {item.value}
                         </Typography>
                       </Box>
@@ -856,10 +856,10 @@ export function App() {
               <Grid size={{ xs: 12, md: 4 }}>
                 <Card sx={{ height: "100%", border: "1px solid rgba(255,255,255,0.08)" }}>
                   <CardContent>
-                    <Typography variant="h6" fontWeight={700}>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
                       Organization
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" mb={2}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                       Create a workspace, switch organizations, and control who can access team-owned links.
                     </Typography>
                     <Stack spacing={2}>
@@ -907,10 +907,10 @@ export function App() {
               <Grid size={{ xs: 12, md: 4 }}>
                 <Card sx={{ height: "100%", border: "1px solid rgba(255,255,255,0.08)" }}>
                   <CardContent>
-                    <Typography variant="h6" fontWeight={700}>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
                       Teams
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" mb={2}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                       Every link belongs to one team. Team membership is the V1 permission boundary.
                     </Typography>
                     <Stack spacing={2}>
@@ -950,10 +950,10 @@ export function App() {
               <Grid size={{ xs: 12, md: 4 }}>
                 <Card sx={{ height: "100%", border: "1px solid rgba(255,255,255,0.08)" }}>
                   <CardContent>
-                    <Typography variant="h6" fontWeight={700}>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
                       Create link
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" mb={2}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                       Slugs stay stable while targets, status, and active state can change over time.
                     </Typography>
                     <Stack spacing={2}>
@@ -1012,9 +1012,9 @@ export function App() {
               <Grid size={{ xs: 12, lg: 5 }}>
                 <Card sx={{ height: "100%", border: "1px solid rgba(255,255,255,0.08)" }}>
                   <CardContent>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+                    <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                       <Box>
-                        <Typography variant="h6" fontWeight={700}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
                           Members and invitations
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
@@ -1051,7 +1051,7 @@ export function App() {
                       <Stack spacing={1}>
                         {visibleMembers.map((member) => (
                           <Paper key={member.id} sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }}>
-                            <Typography fontWeight={700}>{member.user.name}</Typography>
+                            <Typography sx={{ fontWeight: 700 }}>{member.user.name}</Typography>
                             <Typography variant="body2" color="text.secondary">
                               {member.user.email}
                             </Typography>
@@ -1068,9 +1068,9 @@ export function App() {
                       <Stack spacing={1}>
                         {visibleInvitations.map((invitation) => (
                           <Paper key={invitation.id} sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }}>
-                            <Stack direction="row" justifyContent="space-between" spacing={2}>
+                            <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between" }}>
                               <Box>
-                                <Typography fontWeight={700}>{invitation.email}</Typography>
+                                <Typography sx={{ fontWeight: 700 }}>{invitation.email}</Typography>
                                 <Typography variant="body2" color="text.secondary">
                                   {roleLabel(invitation.role)} · {invitation.status}
                                 </Typography>
@@ -1098,17 +1098,17 @@ export function App() {
                 <Stack spacing={3}>
                   <Card sx={{ border: "1px solid rgba(255,255,255,0.08)" }}>
                     <CardContent>
-                      <Typography variant="h5" fontWeight={700} mb={2}>
+                      <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
                         Team links
                       </Typography>
                       {loadingLinks ? <CircularProgress size={20} /> : null}
                       <Stack spacing={2}>
                         {visibleLinks.map((link) => (
                           <Paper key={link.id} sx={{ p: 3, border: "1px solid rgba(255,255,255,0.06)" }}>
-                            <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2}>
+                            <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ justifyContent: "space-between" }}>
                               <Box>
-                                <Stack direction="row" spacing={1} alignItems="center" mb={1} flexWrap="wrap">
-                                  <Typography variant="h6" fontWeight={700}>
+                                <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1, flexWrap: "wrap" }}>
+                                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
                                     {link.title || link.slug}
                                   </Typography>
                                   <Chip size="small" label={link.isActive ? "Active" : "Inactive"} color={link.isActive ? "success" : "default"} />
@@ -1121,7 +1121,7 @@ export function App() {
                                   {appOrigin}/l/{link.slug}
                                 </Typography>
                               </Box>
-                              <Stack direction="row" spacing={1} alignItems="center">
+                              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                                 <Button
                                   variant={effectiveSelectedLinkId === link.id ? "contained" : "outlined"}
                                   onClick={() => setSelectedLinkId(link.id)}
@@ -1146,10 +1146,10 @@ export function App() {
                     <Grid size={{ xs: 12, xl: 6 }}>
                       <Card sx={{ height: "100%", border: "1px solid rgba(255,255,255,0.08)" }}>
                         <CardContent>
-                          <Typography variant="h6" fontWeight={700}>
+                          <Typography variant="h6" sx={{ fontWeight: 700 }}>
                             Selected link
                           </Typography>
-                          <Typography variant="body2" color="text.secondary" mb={2}>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                             Update the target, metadata, and status without changing the public slug.
                           </Typography>
                           {selectedLink ? (
@@ -1171,9 +1171,9 @@ export function App() {
                       <Stack spacing={3}>
                         <Card sx={{ border: "1px solid rgba(255,255,255,0.08)" }}>
                           <CardContent>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+                            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                               <Box>
-                                <Typography variant="h6" fontWeight={700}>
+                                <Typography variant="h6" sx={{ fontWeight: 700 }}>
                                   History
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
@@ -1189,7 +1189,7 @@ export function App() {
                                   <Typography variant="body2" color="text.secondary">
                                     {new Date(item.changedAt).toLocaleString()}
                                   </Typography>
-                                  <Typography fontWeight={700}>{item.newTargetUrl}</Typography>
+                                  <Typography sx={{ fontWeight: 700 }}>{item.newTargetUrl}</Typography>
                                   <Typography variant="body2" color="text.secondary">
                                     Previous target: {item.oldTargetUrl ?? "Initial value"}
                                   </Typography>
@@ -1204,9 +1204,9 @@ export function App() {
 
                         <Card sx={{ border: "1px solid rgba(255,255,255,0.08)" }}>
                           <CardContent>
-                            <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+                            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                               <Box>
-                                <Typography variant="h6" fontWeight={700}>
+                                <Typography variant="h6" sx={{ fontWeight: 700 }}>
                                   Analytics
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
@@ -1216,11 +1216,11 @@ export function App() {
                               <InsightsIcon sx={{ color: "#f59e0b" }} />
                             </Stack>
                             {loadingDetails ? <CircularProgress size={20} /> : null}
-                            <Grid container spacing={2} mb={2}>
+                            <Grid container spacing={2} sx={{ mb: 2 }}>
                               <Grid size={{ xs: 6 }}>
                                 <Paper sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }}>
                                   <Typography color="text.secondary">Total clicks</Typography>
-                                  <Typography data-testid="analytics-total-clicks" variant="h4" fontWeight={800}>
+                                  <Typography data-testid="analytics-total-clicks" variant="h4" sx={{ fontWeight: 800 }}>
                                     {visibleAnalytics.totalClicks}
                                   </Typography>
                                 </Paper>
@@ -1228,7 +1228,7 @@ export function App() {
                               <Grid size={{ xs: 6 }}>
                                 <Paper sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }}>
                                   <Typography color="text.secondary">Unique visitors</Typography>
-                                  <Typography data-testid="analytics-unique-visitors" variant="h4" fontWeight={800}>
+                                  <Typography data-testid="analytics-unique-visitors" variant="h4" sx={{ fontWeight: 800 }}>
                                     {visibleAnalytics.uniqueVisitorApproximation}
                                   </Typography>
                                 </Paper>
@@ -1239,7 +1239,7 @@ export function App() {
                               {visibleAnalytics.topCountries.length ? (
                                 visibleAnalytics.topCountries.map((entry) => (
                                   <Paper key={`${entry.country}-${entry.clicks}`} sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }}>
-                                    <Stack direction="row" justifyContent="space-between">
+                                    <Stack direction="row" sx={{ justifyContent: "space-between" }}>
                                       <Typography>{entry.country ?? "Unknown"}</Typography>
                                       <Typography color="text.secondary">{entry.clicks}</Typography>
                                     </Stack>

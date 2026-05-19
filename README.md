@@ -213,6 +213,40 @@ Deployment credentials are configured in GitHub:
 1. Secrets:
    `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
 
+### Creating the Cloudflare API token
+
+The deploy workflows use Wrangler to:
+
+1. deploy the Worker
+2. apply remote D1 migrations
+
+You can use either:
+
+1. a user API token
+2. an account-owned API token
+
+For GitHub Actions, prefer an account-owned token so deployments are not tied to a specific user account.
+
+Create the token in Cloudflare:
+
+1. Go to Cloudflare Dashboard.
+2. For an account-owned token, go to `Manage Account` -> `API Tokens`.
+3. For a user token, go to your profile -> `API Tokens`.
+4. Select `Create Token`.
+5. Choose `Create Custom Token`.
+6. Name it something like `snarvei-github-actions`.
+7. Add these account permissions:
+   `Workers Scripts: Edit`
+   `D1: Edit`
+8. Restrict the token to the Cloudflare account that owns Snarvei.
+9. Optionally add an expiry date or other restrictions.
+10. Create the token and copy it immediately.
+
+Add the token to GitHub Actions as:
+
+1. `CLOUDFLARE_API_TOKEN`
+2. `CLOUDFLARE_ACCOUNT_ID`
+
 Runtime environment values are configured in `wrangler.jsonc`:
 
 1. production at the top level
