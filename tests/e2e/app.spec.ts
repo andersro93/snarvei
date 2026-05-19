@@ -62,7 +62,13 @@ test("user can create and manage a link end to end", async ({ page }) => {
   await page.getByTestId("create-link-target-input").fill(initialTarget);
   await page.getByTestId("create-link-title-input").fill(linkTitle);
   await page.getByTestId("create-link-description-input").fill("Created from Playwright coverage");
-  await clickTestIdButton(page, "create-link-button");
+  await Promise.all([
+    page.waitForResponse(
+      (response) => response.url().includes("/api/links") && response.request().method() === "POST" && response.ok(),
+    ),
+    clickTestIdButton(page, "create-link-button"),
+  ]);
+  await expect(page.getByText("Short link created.")).toBeVisible();
   await expect(page.getByText(linkTitle)).toBeVisible();
   await expect(page.getByText(initialTarget)).toBeVisible();
 
