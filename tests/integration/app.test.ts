@@ -1,16 +1,19 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../../src/worker/app";
+import type { AppBindings } from "../../src/worker/lib/types";
 
 describe("app", () => {
   const app = createApp();
+  const testEnv: AppBindings = {
+    DB: env.DB,
+    AUTH_SECRET: "4d9ae7e8767de815a6754b18b6fc8c6127ec4ceb3d8f4d64a577f1e3cf6b4ef2",
+    APP_URL: "http://localhost:8787",
+    APP_NAME: "Snarvei",
+  };
+
   const request = (input: string) =>
-    app.request(input, undefined, {
-      DB: env.DB,
-      AUTH_SECRET: "4d9ae7e8767de815a6754b18b6fc8c6127ec4ceb3d8f4d64a577f1e3cf6b4ef2",
-      APP_URL: "http://localhost:8787",
-      APP_NAME: "Snarvei",
-    } as Env);
+    app.request(input, undefined, testEnv);
 
   beforeAll(async () => {
     await env.DB.prepare(`
