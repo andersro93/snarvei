@@ -107,6 +107,14 @@ type AnalyticsSummary = {
   clicksByDay: Array<{ day: string; clicks: number }>;
 };
 
+type SelectedLinkFormValues = {
+  targetUrl: string;
+  title: string;
+  description: string;
+  redirectStatus: 301 | 302 | 307;
+  isActive: boolean;
+};
+
 const initialAnalytics: AnalyticsSummary = {
   totalClicks: 0,
   uniqueVisitorApproximation: 0,
@@ -116,6 +124,101 @@ const initialAnalytics: AnalyticsSummary = {
 };
 
 const roleLabel = (role: string | string[]) => (Array.isArray(role) ? role.join(", ") : role);
+
+function SelectedLinkEditor({
+  link,
+  submitting,
+  onSave,
+  onDelete,
+}: {
+  link: Link;
+  submitting: string | null;
+  onSave: (linkId: string, values: SelectedLinkFormValues) => Promise<void>;
+  onDelete: (linkId: string) => Promise<void>;
+}) {
+  const [targetUrl, setTargetUrl] = useState(link.targetUrl);
+  const [title, setTitle] = useState(link.title ?? "");
+  const [description, setDescription] = useState(link.description ?? "");
+  const [redirectStatus, setRedirectStatus] = useState<301 | 302 | 307>(link.redirectStatus);
+  const [isActive, setIsActive] = useState(link.isActive);
+
+  return (
+    <Stack spacing={2}>
+      <TextField
+        label="Target URL"
+        value={targetUrl}
+        onChange={(event) => setTargetUrl(event.target.value)}
+        slotProps={{ htmlInput: { "data-testid": "selected-link-target-input" } }}
+      />
+      <TextField
+        label="Title"
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+        slotProps={{ htmlInput: { "data-testid": "selected-link-title-input" } }}
+      />
+      <TextField
+        label="Description"
+        value={description}
+        onChange={(event) => setDescription(event.target.value)}
+        multiline
+        minRows={2}
+        slotProps={{ htmlInput: { "data-testid": "selected-link-description-input" } }}
+      />
+      <FormControl>
+        <InputLabel id="selected-link-status-label">Redirect status</InputLabel>
+        <Select
+          labelId="selected-link-status-label"
+          label="Redirect status"
+          value={redirectStatus}
+          onChange={(event) => setRedirectStatus(event.target.value as 301 | 302 | 307)}
+        >
+          <MenuItem value={301}>301</MenuItem>
+          <MenuItem value={302}>302</MenuItem>
+          <MenuItem value={307}>307</MenuItem>
+        </Select>
+      </FormControl>
+      <FormControl>
+        <InputLabel id="selected-link-active-label">Active state</InputLabel>
+        <Select
+          labelId="selected-link-active-label"
+          label="Active state"
+          value={isActive ? "active" : "inactive"}
+          onChange={(event) => setIsActive(event.target.value === "active")}
+        >
+          <MenuItem value="active">Active</MenuItem>
+          <MenuItem value="inactive">Inactive</MenuItem>
+        </Select>
+      </FormControl>
+      <Stack direction="row" spacing={2}>
+        <Button
+          variant="contained"
+          onClick={() =>
+            void onSave(link.id, {
+              targetUrl,
+              title,
+              description,
+              redirectStatus,
+              isActive,
+            })
+          }
+          disabled={submitting === "update-link"}
+          data-testid="save-link-button"
+        >
+          Save changes
+        </Button>
+        <Button
+          color="error"
+          variant="outlined"
+          onClick={() => void onDelete(link.id)}
+          disabled={submitting === "delete-link"}
+          data-testid="delete-link-button"
+        >
+          Delete link
+        </Button>
+      </Stack>
+    </Stack>
+  );
+}
 
 export function App() {
   const { data: session, isPending: sessionPending } = authClient.useSession();
@@ -143,13 +246,11 @@ export function App() {
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string | null>(null);
   const [activeTeamId, setActiveTeamId] = useState<string | null>(null);
   const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
-  const [selectedLinkTarget, setSelectedLinkTarget] = useState("");
-  const [selectedLinkTitle, setSelectedLinkTitle] = useState("");
-  const [selectedLinkDescription, setSelectedLinkDescription] = useState("");
-  const [selectedLinkStatus, setSelectedLinkStatus] = useState<301 | 302 | 307>(302);
-  const [selectedLinkActive, setSelectedLinkActive] = useState(true);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsSummary>(initialAnalytics);
+  const [loadedOrganizationId, setLoadedOrganizationId] = useState<string | null>(null);
+  const [loadedTeamId, setLoadedTeamId] = useState<string | null>(null);
+  const [loadedDetailsLinkId, setLoadedDetailsLinkId] = useState<string | null>(null);
 
   const [loadingTeams, setLoadingTeams] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
@@ -160,12 +261,73 @@ export function App() {
 
   const appOrigin = typeof window === "undefined" ? "http://localhost:8787" : window.location.origin;
 
-  const selectedLink = useMemo(
-    () => links.find((link) => link.id === selectedLinkId) ?? null,
-    [links, selectedLinkId],
+  const availableOrganizations = useMemo(() => (organizations ?? []) as OrganizationSummary[], [organizations]);
+
+  const effectiveOrganizationId = useMemo(() => {
+    if (!session) {
+      return null;
+    }
+
+    if (selectedOrganizationId && availableOrganizations.some((org) => org.id === selectedOrganizationId)) {
+      return selectedOrganizationId;
+    }
+
+    if (activeOrganization?.id && availableOrganizations.some((org) => org.id === activeOrganization.id)) {
+      return activeOrganization.id;
+    }
+
+    return availableOrganizations[0]?.id ?? null;
+  }, [activeOrganization, availableOrganizations, selectedOrganizationId, session]);
+
+  const visibleTeams = useMemo(
+    () => (effectiveOrganizationId && loadedOrganizationId === effectiveOrganizationId ? teams : []),
+    [effectiveOrganizationId, loadedOrganizationId, teams],
+  );
+  const visibleMembers = useMemo(
+    () => (effectiveOrganizationId && loadedOrganizationId === effectiveOrganizationId ? members : []),
+    [effectiveOrganizationId, loadedOrganizationId, members],
+  );
+  const visibleInvitations = useMemo(
+    () => (effectiveOrganizationId && loadedOrganizationId === effectiveOrganizationId ? invitations : []),
+    [effectiveOrganizationId, invitations, loadedOrganizationId],
   );
 
-  const effectiveOrganizationId = selectedOrganizationId ?? activeOrganization?.id ?? null;
+  const effectiveTeamId = useMemo(() => {
+    if (!session || !effectiveOrganizationId) {
+      return null;
+    }
+
+    if (activeTeamId && visibleTeams.some((team) => team.id === activeTeamId)) {
+      return activeTeamId;
+    }
+
+    return visibleTeams[0]?.id ?? null;
+  }, [activeTeamId, effectiveOrganizationId, session, visibleTeams]);
+
+  const visibleLinks = useMemo(
+    () => (effectiveTeamId && loadedTeamId === effectiveTeamId ? links : []),
+    [effectiveTeamId, links, loadedTeamId],
+  );
+
+  const effectiveSelectedLinkId = useMemo(() => {
+    if (!session || !effectiveTeamId) {
+      return null;
+    }
+
+    if (selectedLinkId && visibleLinks.some((link) => link.id === selectedLinkId)) {
+      return selectedLinkId;
+    }
+
+    return visibleLinks[0]?.id ?? null;
+  }, [effectiveTeamId, selectedLinkId, session, visibleLinks]);
+
+  const selectedLink = useMemo(
+    () => visibleLinks.find((link) => link.id === effectiveSelectedLinkId) ?? null,
+    [effectiveSelectedLinkId, visibleLinks],
+  );
+
+  const visibleHistory = selectedLink && loadedDetailsLinkId === selectedLink.id ? history : [];
+  const visibleAnalytics = selectedLink && loadedDetailsLinkId === selectedLink.id ? analytics : initialAnalytics;
 
   const refreshOrganizationData = async (organizationId: string, options?: { silent?: boolean }) => {
     setLoadingTeams(true);
@@ -181,15 +343,8 @@ export function App() {
     if (teamsResult.status === "fulfilled") {
       const nextTeams = readCollection<Team>(teamsResult.value.data, ["teams", "data"]);
       setTeams(nextTeams);
-      setActiveTeamId((current) => {
-        if (current && nextTeams.some((team) => team.id === current)) {
-          return current;
-        }
-        return nextTeams[0]?.id ?? null;
-      });
     } else {
       setTeams([]);
-      setActiveTeamId(null);
       if (!options?.silent) {
         setMessage({ severity: "error", text: "Failed to load teams for the active organization." });
       }
@@ -213,6 +368,7 @@ export function App() {
       }
     }
 
+    setLoadedOrganizationId(organizationId);
     setLoadingTeams(false);
     setLoadingMembers(false);
     setLoadingInvitations(false);
@@ -223,19 +379,20 @@ export function App() {
     try {
       const response = await fetch(`/api/teams/${teamId}/links`, { credentials: "include" });
       if (!response.ok) {
-        throw new Error("Failed to load links");
+        setLinks([]);
+        setLoadedTeamId(teamId);
+        if (!options?.silent) {
+          setMessage({ severity: "error", text: "Failed to load team links." });
+        }
+        return;
       }
+
       const data = (await response.json()) as Link[];
       setLinks(data);
-      setSelectedLinkId((current) => {
-        if (current && data.some((link) => link.id === current)) {
-          return current;
-        }
-        return data[0]?.id ?? null;
-      });
+      setLoadedTeamId(teamId);
     } catch {
       setLinks([]);
-      setSelectedLinkId(null);
+      setLoadedTeamId(teamId);
       if (!options?.silent) {
         setMessage({ severity: "error", text: "Failed to load team links." });
       }
@@ -253,14 +410,22 @@ export function App() {
       ]);
 
       if (!historyResponse.ok || !analyticsResponse.ok) {
-        throw new Error("Failed to load link details");
+        setHistory([]);
+        setAnalytics(initialAnalytics);
+        setLoadedDetailsLinkId(linkId);
+        if (!options?.silent) {
+          setMessage({ severity: "error", text: "Failed to load link history or analytics." });
+        }
+        return;
       }
 
       setHistory((await historyResponse.json()) as HistoryItem[]);
       setAnalytics((await analyticsResponse.json()) as AnalyticsSummary);
+      setLoadedDetailsLinkId(linkId);
     } catch {
       setHistory([]);
       setAnalytics(initialAnalytics);
+      setLoadedDetailsLinkId(linkId);
       if (!options?.silent) {
         setMessage({ severity: "error", text: "Failed to load link history or analytics." });
       }
@@ -270,98 +435,54 @@ export function App() {
   };
 
   useEffect(() => {
-    if (!session) {
-      setTeams([]);
-      setMembers([]);
-      setInvitations([]);
-      setActiveTeamId(null);
-      setSelectedOrganizationId(null);
-      return;
-    }
-
-    if (activeOrganization?.id) {
-      setSelectedOrganizationId(activeOrganization.id);
-    }
-  }, [activeOrganization?.id, session]);
-
-  useEffect(() => {
-    if (!session) {
-      return;
-    }
-
-    const availableOrganizations = (organizations ?? []) as OrganizationSummary[];
-    if (!availableOrganizations.length) {
-      return;
-    }
-
-    if (selectedOrganizationId && availableOrganizations.some((org) => org.id === selectedOrganizationId)) {
-      return;
-    }
-
-    setSelectedOrganizationId(activeOrganization?.id ?? availableOrganizations[0]?.id ?? null);
-  }, [activeOrganization?.id, organizations, selectedOrganizationId, session]);
-
-  useEffect(() => {
     if (!effectiveOrganizationId || !session) {
-      setTeams([]);
-      setMembers([]);
-      setInvitations([]);
-      setActiveTeamId(null);
       return;
     }
 
-    void refreshOrganizationData(effectiveOrganizationId);
+    queueMicrotask(() => {
+      void refreshOrganizationData(effectiveOrganizationId);
+    });
   }, [effectiveOrganizationId, session]);
 
   useEffect(() => {
-    if (!activeTeamId || !session) {
-      setLinks([]);
-      setSelectedLinkId(null);
+    if (!effectiveTeamId || !session) {
       return;
     }
 
-    void refreshLinks(activeTeamId);
-  }, [activeTeamId, session]);
+    queueMicrotask(() => {
+      void refreshLinks(effectiveTeamId);
+    });
+  }, [effectiveTeamId, session]);
 
   useEffect(() => {
-    if (!selectedLink) {
-      setSelectedLinkTarget("");
-      setSelectedLinkTitle("");
-      setSelectedLinkDescription("");
-      setSelectedLinkStatus(302);
-      setSelectedLinkActive(true);
-      setHistory([]);
-      setAnalytics(initialAnalytics);
+    if (!selectedLink?.id) {
       return;
     }
 
-    setSelectedLinkTarget(selectedLink.targetUrl);
-    setSelectedLinkTitle(selectedLink.title ?? "");
-    setSelectedLinkDescription(selectedLink.description ?? "");
-    setSelectedLinkStatus(selectedLink.redirectStatus);
-    setSelectedLinkActive(selectedLink.isActive);
-    void refreshSelectedLinkData(selectedLink.id);
-  }, [selectedLink]);
+    queueMicrotask(() => {
+      void refreshSelectedLinkData(selectedLink.id);
+    });
+  }, [selectedLink?.id]);
 
   const quickStats = useMemo(
     () => [
       {
         label: "Organizations",
-        value: organizations?.length ?? 0,
+        value: availableOrganizations.length,
         icon: <Groups2Icon color="primary" />,
       },
       {
         label: "Members",
-        value: members.length,
+        value: visibleMembers.length,
         icon: <MailOutlineIcon color="secondary" />,
       },
       {
         label: "Links",
-        value: links.length,
+        value: visibleLinks.length,
         icon: <InsightsIcon sx={{ color: "#f59e0b" }} />,
       },
     ],
-    [links.length, members.length, organizations?.length],
+    [availableOrganizations.length, visibleLinks.length, visibleMembers.length],
   );
 
   const signUp = async () => {
@@ -443,7 +564,7 @@ export function App() {
   };
 
   const createLink = async () => {
-    if (!activeTeamId) return;
+    if (!effectiveTeamId) return;
     setSubmitting("create-link");
     setMessage(null);
     const response = await fetch("/api/links", {
@@ -451,7 +572,7 @@ export function App() {
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        teamId: activeTeamId,
+        teamId: effectiveTeamId,
         targetUrl: linkTarget,
         redirectStatus: linkRedirectStatus,
         title: linkTitle || undefined,
@@ -475,20 +596,19 @@ export function App() {
     setSubmitting(null);
   };
 
-  const updateSelectedLink = async () => {
-    if (!selectedLink) return;
+  const updateSelectedLink = async (linkId: string, values: SelectedLinkFormValues) => {
     setSubmitting("update-link");
     setMessage(null);
-    const response = await fetch(`/api/links/${selectedLink.id}`, {
+    const response = await fetch(`/api/links/${linkId}`, {
       method: "PATCH",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        targetUrl: selectedLinkTarget,
-        title: selectedLinkTitle || null,
-        description: selectedLinkDescription || null,
-        redirectStatus: selectedLinkStatus,
-        isActive: selectedLinkActive,
+        targetUrl: values.targetUrl,
+        title: values.title || null,
+        description: values.description || null,
+        redirectStatus: values.redirectStatus,
+        isActive: values.isActive,
       }),
     });
 
@@ -505,11 +625,10 @@ export function App() {
     setSubmitting(null);
   };
 
-  const deleteSelectedLink = async () => {
-    if (!selectedLink) return;
+  const deleteSelectedLink = async (linkId: string) => {
     setSubmitting("delete-link");
     setMessage(null);
-    const response = await fetch(`/api/links/${selectedLink.id}`, {
+    const response = await fetch(`/api/links/${linkId}`, {
       method: "DELETE",
       credentials: "include",
     });
@@ -520,8 +639,8 @@ export function App() {
       return;
     }
 
-    setLinks((current) => current.filter((link) => link.id !== selectedLink.id));
-    setSelectedLinkId((current) => (current === selectedLink.id ? null : current));
+    setLinks((current) => current.filter((link) => link.id !== linkId));
+    setSelectedLinkId((current) => (current === linkId ? null : current));
     setMessage({ severity: "success", text: "Link deleted." });
     setSubmitting(null);
   };
@@ -534,7 +653,7 @@ export function App() {
       email: inviteEmail,
       role: inviteRole,
       organizationId: effectiveOrganizationId,
-      teamId: activeTeamId ?? undefined,
+      teamId: effectiveTeamId ?? undefined,
     });
 
     if (result.error) {
@@ -569,11 +688,11 @@ export function App() {
     if (effectiveOrganizationId) {
       await refreshOrganizationData(effectiveOrganizationId);
     }
-    if (activeTeamId) {
-      await refreshLinks(activeTeamId);
+    if (effectiveTeamId) {
+      await refreshLinks(effectiveTeamId);
     }
-    if (selectedLinkId) {
-      await refreshSelectedLinkData(selectedLinkId);
+    if (selectedLink?.id) {
+      await refreshSelectedLinkData(selectedLink.id);
     }
   };
 
@@ -767,7 +886,7 @@ export function App() {
                       <Divider />
                       <Typography variant="subtitle2">Available organizations</Typography>
                       <Stack spacing={1}>
-                        {(organizations ?? []).map((org) => (
+                        {availableOrganizations.map((org) => (
                           <Button
                             key={org.id}
                             variant={effectiveOrganizationId === org.id ? "contained" : "text"}
@@ -813,10 +932,10 @@ export function App() {
                       <Typography variant="subtitle2">Organization teams</Typography>
                       {loadingTeams ? <CircularProgress size={20} /> : null}
                       <Stack spacing={1}>
-                        {teams.map((team) => (
+                        {visibleTeams.map((team) => (
                           <Button
                             key={team.id}
-                            variant={activeTeamId === team.id ? "contained" : "text"}
+                            variant={effectiveTeamId === team.id ? "contained" : "text"}
                             onClick={() => setActiveTeamId(team.id)}
                           >
                             {team.name}
@@ -875,7 +994,7 @@ export function App() {
                         variant="contained"
                         startIcon={<AddLinkIcon />}
                         onClick={() => void createLink()}
-                        disabled={!activeTeamId || submitting === "create-link"}
+                        disabled={!effectiveTeamId || submitting === "create-link"}
                         data-testid="create-link-button"
                       >
                         Generate link
@@ -930,7 +1049,7 @@ export function App() {
                       <Typography variant="subtitle2">Members</Typography>
                       {loadingMembers ? <CircularProgress size={20} /> : null}
                       <Stack spacing={1}>
-                        {members.map((member) => (
+                        {visibleMembers.map((member) => (
                           <Paper key={member.id} sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }}>
                             <Typography fontWeight={700}>{member.user.name}</Typography>
                             <Typography variant="body2" color="text.secondary">
@@ -939,7 +1058,7 @@ export function App() {
                             <Chip size="small" label={roleLabel(member.role)} sx={{ mt: 1 }} />
                           </Paper>
                         ))}
-                        {!members.length && !loadingMembers ? (
+                        {!visibleMembers.length && !loadingMembers ? (
                           <Alert severity="info">No members loaded for the active organization yet.</Alert>
                         ) : null}
                       </Stack>
@@ -947,7 +1066,7 @@ export function App() {
                       <Typography variant="subtitle2">Pending invitations</Typography>
                       {loadingInvitations ? <CircularProgress size={20} /> : null}
                       <Stack spacing={1}>
-                        {invitations.map((invitation) => (
+                        {visibleInvitations.map((invitation) => (
                           <Paper key={invitation.id} sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }}>
                             <Stack direction="row" justifyContent="space-between" spacing={2}>
                               <Box>
@@ -966,7 +1085,7 @@ export function App() {
                             </Stack>
                           </Paper>
                         ))}
-                        {!invitations.length && !loadingInvitations ? (
+                        {!visibleInvitations.length && !loadingInvitations ? (
                           <Alert severity="info">No pending invitations.</Alert>
                         ) : null}
                       </Stack>
@@ -984,7 +1103,7 @@ export function App() {
                       </Typography>
                       {loadingLinks ? <CircularProgress size={20} /> : null}
                       <Stack spacing={2}>
-                        {links.map((link) => (
+                        {visibleLinks.map((link) => (
                           <Paper key={link.id} sx={{ p: 3, border: "1px solid rgba(255,255,255,0.06)" }}>
                             <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" spacing={2}>
                               <Box>
@@ -1003,7 +1122,10 @@ export function App() {
                                 </Typography>
                               </Box>
                               <Stack direction="row" spacing={1} alignItems="center">
-                                <Button variant={selectedLinkId === link.id ? "contained" : "outlined"} onClick={() => setSelectedLinkId(link.id)}>
+                                <Button
+                                  variant={effectiveSelectedLinkId === link.id ? "contained" : "outlined"}
+                                  onClick={() => setSelectedLinkId(link.id)}
+                                >
                                   Manage
                                 </Button>
                                 <Button href={`/l/${link.slug}`} target="_blank" rel="noreferrer">
@@ -1013,7 +1135,7 @@ export function App() {
                             </Stack>
                           </Paper>
                         ))}
-                        {!links.length && !loadingLinks ? (
+                        {!visibleLinks.length && !loadingLinks ? (
                           <Alert severity="info">Create your first link to start collecting analytics.</Alert>
                         ) : null}
                       </Stack>
@@ -1031,72 +1153,13 @@ export function App() {
                             Update the target, metadata, and status without changing the public slug.
                           </Typography>
                           {selectedLink ? (
-                            <Stack spacing={2}>
-                              <TextField
-                                label="Target URL"
-                                value={selectedLinkTarget}
-                                onChange={(event) => setSelectedLinkTarget(event.target.value)}
-                                slotProps={{ htmlInput: { "data-testid": "selected-link-target-input" } }}
-                              />
-                              <TextField
-                                label="Title"
-                                value={selectedLinkTitle}
-                                onChange={(event) => setSelectedLinkTitle(event.target.value)}
-                                slotProps={{ htmlInput: { "data-testid": "selected-link-title-input" } }}
-                              />
-                              <TextField
-                                label="Description"
-                                value={selectedLinkDescription}
-                                onChange={(event) => setSelectedLinkDescription(event.target.value)}
-                                multiline
-                                minRows={2}
-                                slotProps={{ htmlInput: { "data-testid": "selected-link-description-input" } }}
-                              />
-                              <FormControl>
-                                <InputLabel id="selected-link-status-label">Redirect status</InputLabel>
-                                <Select
-                                  labelId="selected-link-status-label"
-                                  label="Redirect status"
-                                  value={selectedLinkStatus}
-                                  onChange={(event) => setSelectedLinkStatus(event.target.value as 301 | 302 | 307)}
-                                >
-                                  <MenuItem value={301}>301</MenuItem>
-                                  <MenuItem value={302}>302</MenuItem>
-                                  <MenuItem value={307}>307</MenuItem>
-                                </Select>
-                              </FormControl>
-                              <FormControl>
-                                <InputLabel id="selected-link-active-label">Active state</InputLabel>
-                                <Select
-                                  labelId="selected-link-active-label"
-                                  label="Active state"
-                                  value={selectedLinkActive ? "active" : "inactive"}
-                                  onChange={(event) => setSelectedLinkActive(event.target.value === "active")}
-                                >
-                                  <MenuItem value="active">Active</MenuItem>
-                                  <MenuItem value="inactive">Inactive</MenuItem>
-                                </Select>
-                              </FormControl>
-                              <Stack direction="row" spacing={2}>
-                                <Button
-                                  variant="contained"
-                                  onClick={() => void updateSelectedLink()}
-                                  disabled={submitting === "update-link"}
-                                  data-testid="save-link-button"
-                                >
-                                  Save changes
-                                </Button>
-                                <Button
-                                  color="error"
-                                  variant="outlined"
-                                  onClick={() => void deleteSelectedLink()}
-                                  disabled={submitting === "delete-link"}
-                                  data-testid="delete-link-button"
-                                >
-                                  Delete link
-                                </Button>
-                              </Stack>
-                            </Stack>
+                            <SelectedLinkEditor
+                              key={selectedLink.id}
+                              link={selectedLink}
+                              submitting={submitting}
+                              onSave={updateSelectedLink}
+                              onDelete={deleteSelectedLink}
+                            />
                           ) : (
                             <Alert severity="info">Select a link to inspect and update it.</Alert>
                           )}
@@ -1121,7 +1184,7 @@ export function App() {
                             </Stack>
                             {loadingDetails ? <CircularProgress size={20} /> : null}
                             <Stack spacing={1}>
-                              {history.map((item) => (
+                              {visibleHistory.map((item) => (
                                 <Paper key={item.id} sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }}>
                                   <Typography variant="body2" color="text.secondary">
                                     {new Date(item.changedAt).toLocaleString()}
@@ -1132,7 +1195,7 @@ export function App() {
                                   </Typography>
                                 </Paper>
                               ))}
-                              {!history.length && !loadingDetails ? (
+                              {!visibleHistory.length && !loadingDetails ? (
                                 <Alert severity="info">No target history for the selected link yet.</Alert>
                               ) : null}
                             </Stack>
@@ -1158,7 +1221,7 @@ export function App() {
                                 <Paper sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }}>
                                   <Typography color="text.secondary">Total clicks</Typography>
                                   <Typography data-testid="analytics-total-clicks" variant="h4" fontWeight={800}>
-                                    {analytics.totalClicks}
+                                    {visibleAnalytics.totalClicks}
                                   </Typography>
                                 </Paper>
                               </Grid>
@@ -1166,15 +1229,15 @@ export function App() {
                                 <Paper sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }}>
                                   <Typography color="text.secondary">Unique visitors</Typography>
                                   <Typography data-testid="analytics-unique-visitors" variant="h4" fontWeight={800}>
-                                    {analytics.uniqueVisitorApproximation}
+                                    {visibleAnalytics.uniqueVisitorApproximation}
                                   </Typography>
                                 </Paper>
                               </Grid>
                             </Grid>
                             <Stack spacing={1}>
                               <Typography variant="subtitle2">Top countries</Typography>
-                              {analytics.topCountries.length ? (
-                                analytics.topCountries.map((entry) => (
+                              {visibleAnalytics.topCountries.length ? (
+                                visibleAnalytics.topCountries.map((entry) => (
                                   <Paper key={`${entry.country}-${entry.clicks}`} sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }}>
                                     <Stack direction="row" justifyContent="space-between">
                                       <Typography>{entry.country ?? "Unknown"}</Typography>

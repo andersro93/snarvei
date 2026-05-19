@@ -29,7 +29,7 @@ test("landing page renders product messaging", async ({ page }) => {
   await expect(page.getByText("Cloudflare Workers")).toBeVisible();
 });
 
-test("user can create and manage a link end to end", async ({ page, context }) => {
+test("user can create and manage a link end to end", async ({ page }) => {
   const id = unique();
   const name = `Owner ${id}`;
   const email = `owner-${id}@example.com`;

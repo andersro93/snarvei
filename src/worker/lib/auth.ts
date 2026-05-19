@@ -3,11 +3,12 @@ import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { organization } from "better-auth/plugins";
 import { createDb } from "../db/client";
 import { schema } from "../db/schema";
+import type { AppBindings } from "./types";
 
 const createInviteLink = (baseUrl: string, invitationId: string) =>
   `${baseUrl.replace(/\/$/, "")}/app?invitation=${encodeURIComponent(invitationId)}`;
 
-export const createAuth = (env: Env & { AUTH_SECRET: string; APP_URL?: string }) => {
+export const createAuth = (env: AppBindings) => {
   const db = createDb(env.DB);
   const baseUrl = env.APP_URL || "http://localhost:8787";
 

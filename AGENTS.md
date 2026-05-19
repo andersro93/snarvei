@@ -154,6 +154,18 @@ Rules:
 
 Testing is a first-class requirement, not optional polish.
 
+Before committing or pushing code, always run the validation commands that cover the affected surface area. At minimum, this means:
+
+1. `pnpm lint`
+2. `pnpm build`
+3. `pnpm test`
+
+If UI flows or browser-facing behavior changed, also run:
+
+1. `pnpm test:e2e`
+
+Do not rely on CI to catch avoidable lint, type, or test regressions after the fact.
+
 Minimum expectations:
 
 1. Unit tests for utility and authorization logic.

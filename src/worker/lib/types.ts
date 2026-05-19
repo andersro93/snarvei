@@ -1,6 +1,6 @@
 import type { Database } from "../db/client";
 
-export type AppBindings = Env & {
+export type AppBindings = Omit<Env, "APP_URL" | "AUTH_SECRET"> & {
   AUTH_SECRET: string;
   APP_URL?: string;
 };
