@@ -12,6 +12,7 @@ export const users = sqliteTable("users", {
   email: text("email").notNull().unique(),
   emailVerified: integer("email_verified", { mode: "boolean" }).default(false).notNull(),
   image: text("image"),
+  twoFactorEnabled: integer("two_factor_enabled", { mode: "boolean" }).default(false),
   createdAt: timestampMs("created_at"),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
@@ -147,6 +148,43 @@ export const teams = sqliteTable(
   ],
 );
 
+export const twoFactors = sqliteTable(
+  "two_factors",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+    verified: integer("verified", { mode: "boolean" }).default(false).notNull(),
+  },
+  (table) => [index("two_factors_user_id_idx").on(table.userId), uniqueIndex("two_factors_user_unique").on(table.userId)],
+);
+
+export const passkeys = sqliteTable(
+  "passkeys",
+  {
+    id: text("id").primaryKey(),
+    name: text("name"),
+    publicKey: text("public_key").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    credentialID: text("credential_id").notNull(),
+    counter: integer("counter").notNull(),
+    deviceType: text("device_type").notNull(),
+    backedUp: integer("backed_up", { mode: "boolean" }).notNull(),
+    transports: text("transports"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`),
+    aaguid: text("aaguid"),
+  },
+  (table) => [
+    index("passkeys_user_id_idx").on(table.userId),
+    uniqueIndex("passkeys_credential_id_unique").on(table.credentialID),
+  ],
+);
+
 export const teamMembers = sqliteTable(
   "team_members",
   {
@@ -243,6 +281,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
   memberships: many(members),
   teamMemberships: many(teamMembers),
+  twoFactors: many(twoFactors),
+  passkeys: many(passkeys),
 }));
 
 export const organizationsRelations = relations(organizations, ({ many }) => ({
@@ -283,6 +323,8 @@ export const schema = {
   invitations,
   teams,
   teamMembers,
+  twoFactors,
+  passkeys,
   links,
   linkTargetHistory,
   clickEvents,

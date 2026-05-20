@@ -20,6 +20,7 @@ import {
 import { DataGrid, type GridColDef, type GridEventListener, type GridRenderCellParams, type GridRowParams, Toolbar } from "@mui/x-data-grid";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { authClient } from "./lib/auth-client";
 import { AppShell } from "./components/app-shell";
 import {
   CopyButton,
@@ -37,10 +38,13 @@ import type { Invitation, OrganizationSummary, Team } from "./types";
 
 function LandingPage() {
   const navigate = useNavigate();
-  const { session, sessionPending, signIn, signUp, submitting } = useWorkspace();
+  const { refreshOrganizations, refreshSessionState, session, sessionPending, signIn, signUp, submitting } = useWorkspace();
   const [email, setEmail] = useState("owner@example.com");
   const [name, setName] = useState("Anders");
   const [password, setPassword] = useState("Password123!");
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [twoFactorMethod, setTwoFactorMethod] = useState<"totp" | "backup">("totp");
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false);
 
   if (sessionPending) {
     return (
@@ -111,7 +115,14 @@ function LandingPage() {
                 <Button
                   variant="contained"
                   disabled={submitting === "signin"}
-                  onClick={() => void signIn({ email, password }).then((ok: boolean) => ok && navigate("/app/select-organization"))}
+                  onClick={() =>
+                    void signIn({ email, password }).then((result) => {
+                      setTwoFactorRequired(Boolean(result.requiresTwoFactor));
+                      if (result.ok) {
+                        navigate("/app/select-organization");
+                      }
+                    })
+                  }
                 >
                   Sign in
                 </Button>
@@ -124,6 +135,61 @@ function LandingPage() {
                   Create account
                 </Button>
               </Stack>
+              <Button
+                variant="text"
+                onClick={() =>
+                  void authClient.signIn.passkey({ autoFill: false }).then(async (result) => {
+                    if (result.error) {
+                      return;
+                    }
+                    await refreshSessionState();
+                    await refreshOrganizations({ silent: true });
+                    navigate("/app/select-organization");
+                  })
+                }
+              >
+                Sign in with passkey
+              </Button>
+              {twoFactorRequired ? (
+                <Stack spacing={1.5} sx={{ pt: 1 }}>
+                  <Typography variant="subtitle2">Two-factor verification</Typography>
+                  <Stack direction="row" spacing={1}>
+                    <Button variant={twoFactorMethod === "totp" ? "contained" : "outlined"} onClick={() => setTwoFactorMethod("totp")}>
+                      Authenticator code
+                    </Button>
+                    <Button variant={twoFactorMethod === "backup" ? "contained" : "outlined"} onClick={() => setTwoFactorMethod("backup")}>
+                      Backup code
+                    </Button>
+                  </Stack>
+                  <input
+                    data-testid="two-factor-code-input"
+                    value={twoFactorCode}
+                    onChange={(event) => setTwoFactorCode(event.target.value)}
+                    placeholder={twoFactorMethod === "totp" ? "123456" : "Backup code"}
+                    style={inputStyle}
+                  />
+                  <Button
+                    variant="outlined"
+                    onClick={() =>
+                      void (twoFactorMethod === "totp"
+                        ? authClient.twoFactor.verifyTotp({ code: twoFactorCode })
+                        : authClient.twoFactor.verifyBackupCode({ code: twoFactorCode }))
+                        .then(async (result) => {
+                          if (result.error) {
+                            return;
+                          }
+                          setTwoFactorRequired(false);
+                          setTwoFactorCode("");
+                          await refreshSessionState();
+                          await refreshOrganizations({ silent: true });
+                          navigate("/app/select-organization");
+                        })
+                    }
+                  >
+                    Verify code
+                  </Button>
+                </Stack>
+              ) : null}
             </Stack>
           </CardContent>
         </Card>

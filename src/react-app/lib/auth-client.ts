@@ -1,5 +1,6 @@
 import { createAuthClient } from "better-auth/react";
-import { organizationClient } from "better-auth/client/plugins";
+import { passkeyClient } from "@better-auth/passkey/client";
+import { organizationClient, twoFactorClient } from "better-auth/client/plugins";
 
 type ClientError = {
   message?: string | null;
@@ -24,17 +25,63 @@ type OrganizationSummary = {
   slug?: string;
 };
 
+type AuthSession = {
+  id: string;
+  token: string;
+  createdAt?: string | number;
+  updatedAt?: string | number;
+  expiresAt?: string | number;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+};
+
+type PasskeySummary = {
+  id: string;
+  name?: string | null;
+  createdAt?: string | number | null;
+  deviceType?: string | null;
+  backedUp?: boolean;
+};
+
 type SnarveiAuthClient = {
   useSession: () => ClientQueryResult<unknown>;
   useListOrganizations: () => ClientQueryResult<OrganizationSummary[]>;
   useActiveOrganization: () => ClientQueryResult<OrganizationSummary>;
+  updateUser: (input: { name?: string; image?: string | null }) => ClientResult<unknown>;
+  changeEmail: (input: { newEmail: string; callbackURL?: string }) => ClientResult<unknown>;
+  changePassword: (input: { currentPassword: string; newPassword: string; revokeOtherSessions?: boolean }) => ClientResult<unknown>;
+  listSessions: () => ClientResult<AuthSession[]>;
+  revokeSession: (input: { token: string }) => ClientResult<unknown>;
+  revokeOtherSessions: () => ClientResult<unknown>;
   signIn: {
     email: (input: { email: string; password: string }) => ClientResult<unknown>;
+    passkey: (input?: { autoFill?: boolean; extensions?: Record<string, unknown>; returnWebAuthnResponse?: boolean }) => ClientResult<unknown>;
   };
   signUp: {
     email: (input: { name: string; email: string; password: string }) => ClientResult<unknown>;
   };
   signOut: () => Promise<unknown>;
+  twoFactor: {
+    enable: (input: { password?: string; issuer?: string }) => ClientResult<{ totpURI?: string; backupCodes?: string[] }>;
+    disable: (input: { password?: string }) => ClientResult<unknown>;
+    getTotpUri: (input: { password?: string }) => ClientResult<{ totpURI?: string }>;
+    verifyTotp: (input: { code: string; trustDevice?: boolean }) => ClientResult<unknown>;
+    verifyBackupCode: (input: { code: string; trustDevice?: boolean; disableSession?: boolean }) => ClientResult<unknown>;
+    generateBackupCodes: (input: { password?: string }) => ClientResult<{ backupCodes?: string[] }>;
+    viewBackupCodes: (input?: { userId?: string | null }) => ClientResult<{ backupCodes?: string[] }>;
+  };
+  passkey: {
+    addPasskey: (input?: {
+      name?: string;
+      authenticatorAttachment?: "platform" | "cross-platform";
+      extensions?: Record<string, unknown>;
+      returnWebAuthnResponse?: boolean;
+      context?: string;
+    }) => ClientResult<unknown>;
+    listUserPasskeys: (input?: Record<string, never>) => ClientResult<PasskeySummary[]>;
+    deletePasskey: (input: { id: string }) => ClientResult<unknown>;
+    updatePasskey: (input: { id: string; name: string }) => ClientResult<unknown>;
+  };
   organization: {
     create: (input: { name: string; slug: string }) => ClientResult<{ id?: string }>;
     list: (input: Record<string, never>) => ClientResult<OrganizationSummary[]>;
@@ -61,5 +108,7 @@ export const authClient = createAuthClient({
     organizationClient({
       teams: { enabled: true },
     }),
+    twoFactorClient(),
+    passkeyClient(),
   ],
 }) as unknown as SnarveiAuthClient;

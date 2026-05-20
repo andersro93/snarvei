@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.6.11",
+    "@better-auth/passkey": "^1.6.11",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@hono/zod-openapi": "^1.4.0",
@@ -34,6 +35,7 @@
     "hono": "^4.12.19",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "react-qr-code": "^2.0.21",
     "react-router-dom": "^7.15.1",
     "zod": "^4.4.3"
   },

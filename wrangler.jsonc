@@ -12,7 +12,7 @@
     "directory": "./dist/client",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/l/*", "/openapi.json", "/scalar"]
+    "run_worker_first": ["/api/*", "/l/*", "/images/profile/*", "/openapi.json", "/scalar"]
   },
   "d1_databases": [
     {
@@ -20,6 +20,12 @@
       "database_name": "snarvei",
       "database_id": "a506e6e7-0da6-49fe-9ee5-bd57a5999f21",
       "migrations_dir": "./src/worker/db/migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "PROFILE_IMAGES",
+      "bucket_name": "snarvei-profile-images"
     }
   ],
   "vars": {
@@ -35,6 +41,12 @@
           "database_name": "snarvei-dev",
           "database_id": "5de8c0b4-6496-4818-adfa-3599f17c3a9b",
           "migrations_dir": "./src/worker/db/migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "PROFILE_IMAGES",
+          "bucket_name": "snarvei-dev-profile-images"
         }
       ],
       "vars": {

@@ -141,7 +141,9 @@ export function AppShell() {
               ))}
             </Select>
             <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", pt: 1 }}>
-              <Avatar sx={{ bgcolor: "primary.main" }}>{session?.user.name?.[0]?.toUpperCase() ?? "S"}</Avatar>
+              <Avatar src={session?.user.image ?? undefined} sx={{ bgcolor: "primary.main" }}>
+                {session?.user.name?.[0]?.toUpperCase() ?? "S"}
+              </Avatar>
               <Box sx={{ minWidth: 0, flexGrow: 1 }}>
                 <Typography sx={{ fontWeight: 700 }} noWrap>
                   {session?.user.name ?? "Signed in user"}

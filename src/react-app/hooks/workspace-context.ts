@@ -39,7 +39,12 @@ export type WorkspaceContextValue = {
   message: AppMessage | null;
   appOrigin: string;
   setMessage: (message: AppMessage | null) => void;
-  signIn: (input: { email: string; password: string }) => Promise<boolean>;
+  refreshSessionState: () => Promise<void>;
+  signIn: (input: { email: string; password: string }) => Promise<{
+    ok: boolean;
+    requiresTwoFactor?: boolean;
+    twoFactorMethods?: string[];
+  }>;
   signUp: (input: { name: string; email: string; password: string }) => Promise<boolean>;
   signOut: () => Promise<void>;
   switchOrganization: (organizationId: string) => Promise<void>;

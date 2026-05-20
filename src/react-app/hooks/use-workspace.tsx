@@ -295,13 +295,24 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     if (result.error) {
       setMessage({ severity: "error", text: result.error.message ?? "Unable to sign in." });
       setSubmitting(null);
-      return false;
+      return { ok: false };
+    }
+
+    const signInData = result.data as { twoFactorRedirect?: boolean; twoFactorMethods?: string[] } | null | undefined;
+    if (signInData?.twoFactorRedirect) {
+      setMessage({ severity: "info", text: "Enter your verification code to finish signing in." });
+      setSubmitting(null);
+      return {
+        ok: false,
+        requiresTwoFactor: true,
+        twoFactorMethods: signInData.twoFactorMethods ?? [],
+      };
     }
 
     await Promise.all([sessionQuery.refetch(), refreshOrganizations({ silent: true })]);
     setMessage({ severity: "success", text: "Signed in." });
     setSubmitting(null);
-    return true;
+    return { ok: true };
   };
 
   const signOut = async () => {
@@ -539,6 +550,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     message,
     appOrigin,
     setMessage,
+    refreshSessionState: async () => {
+      await sessionQuery.refetch();
+    },
     signIn,
     signUp,
     signOut,

@@ -1,12 +1,44 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
-import { organization } from "better-auth/plugins";
+import { passkey } from "@better-auth/passkey";
+import { organization, twoFactor } from "better-auth/plugins";
 import { createDb } from "../db/client";
 import { schema } from "../db/schema";
 import type { AppBindings } from "./types";
 
+type AuthSessionResult = {
+  session: {
+    id: string;
+    userId: string;
+    activeOrganizationId?: string | null;
+    activeTeamId?: string | null;
+  };
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    image?: string | null;
+  };
+} | null;
+
+type AuthInstance = {
+  handler: (request: Request) => Response | Promise<Response>;
+  api: {
+    getSession: (input: { headers: Headers }) => Promise<AuthSessionResult>;
+    updateUser: (input: {
+      body: {
+        name?: string;
+        image?: string | null;
+      };
+      headers: Headers;
+    }) => Promise<unknown>;
+  };
+};
+
 const createInviteLink = (baseUrl: string, invitationId: string) =>
   `${baseUrl.replace(/\/$/, "")}/app?invitation=${encodeURIComponent(invitationId)}`;
+
+const createSettingsLink = (baseUrl: string) => `${baseUrl.replace(/\/$/, "")}/app/settings`;
 
 const createTrustedOrigins = (baseUrl: string) => {
   const baseOrigin = new URL(baseUrl).origin;
@@ -30,13 +62,16 @@ const createTrustedOrigins = (baseUrl: string) => {
   };
 };
 
-export const createAuth = (env: AppBindings) => {
+export const createAuth = (env: AppBindings): AuthInstance => {
   const db = createDb(env.DB);
   const baseUrl = env.APP_URL || "http://localhost:8787";
+  const baseOrigin = new URL(baseUrl).origin;
+  const relyingPartyId = new URL(baseUrl).hostname;
 
   return betterAuth({
     secret: env.AUTH_SECRET,
     baseURL: baseUrl,
+    appName: env.APP_NAME || "Snarvei",
     trustedOrigins: createTrustedOrigins(baseUrl),
     database: drizzleAdapter(db, {
       provider: "sqlite",
@@ -52,8 +87,34 @@ export const createAuth = (env: AppBindings) => {
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
+      revokeSessionsOnPasswordReset: true,
+    },
+    user: {
+      changeEmail: {
+        enabled: true,
+      },
+    },
+    emailVerification: {
+      async sendVerificationEmail(data) {
+        console.log(
+          JSON.stringify({
+            type: "email-verification",
+            email: data.user.email,
+            verificationUrl: data.url,
+            callbackUrl: createSettingsLink(baseUrl),
+          }),
+        );
+      },
     },
     plugins: [
+      twoFactor({
+        issuer: env.APP_NAME || "Snarvei",
+      }),
+      passkey({
+        rpID: relyingPartyId,
+        rpName: env.APP_NAME || "Snarvei",
+        origin: baseOrigin,
+      }),
       organization({
         teams: {
           enabled: true,
@@ -80,5 +141,5 @@ export const createAuth = (env: AppBindings) => {
         },
       }),
     ],
-  });
+  }) as AuthInstance;
 };

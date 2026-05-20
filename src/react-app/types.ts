@@ -75,6 +75,24 @@ export type AppMessage = {
   text: string;
 };
 
+export type AuthSession = {
+  id: string;
+  token: string;
+  createdAt?: string | number;
+  updatedAt?: string | number;
+  expiresAt?: string | number;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+};
+
+export type PasskeySummary = {
+  id: string;
+  name?: string | null;
+  createdAt?: string | number | null;
+  deviceType?: string | null;
+  backedUp?: boolean;
+};
+
 export type UserSettingsFormValues = {
   name: string;
 };
@@ -84,7 +102,9 @@ export type SessionData = {
     id: string;
     name: string;
     email: string;
+    emailVerified?: boolean;
     image?: string | null;
+    twoFactorEnabled?: boolean;
   };
   session: {
     id: string;

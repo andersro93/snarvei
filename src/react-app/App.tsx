@@ -4,6 +4,7 @@ import { AppShell, DashboardPage, LandingPage, LinkDetailsPage, LinksPage, Organ
 import { buildOrganizationPath, settingsPath } from "./lib/routes";
 import { WorkspaceProvider } from "./hooks/use-workspace";
 import { useWorkspace } from "./hooks/use-workspace-context";
+import { SettingsPage } from "./settings-page";
 
 const theme = createTheme({
   palette: {
@@ -67,31 +68,6 @@ function OrganizationIndexRedirect() {
   return <Navigate to={buildOrganizationPath(activeOrganization)} replace />;
 }
 
-function UserSettingsPage() {
-  const { session } = useWorkspace();
-
-  return (
-    <Box sx={{ maxWidth: 720 }}>
-      <Box sx={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 4, p: 4, background: "rgba(15,23,42,0.72)" }}>
-        <Box sx={{ mb: 2 }}>
-          <Box component="h1" sx={{ fontSize: 34, fontWeight: 800, m: 0 }}>
-            Settings
-          </Box>
-          <Box component="p" sx={{ color: "text.secondary", mt: 1, mb: 0 }}>
-            Current user settings and profile controls will live here.
-          </Box>
-        </Box>
-        <Box component="dl" sx={{ display: "grid", gridTemplateColumns: "140px 1fr", rowGap: 1.5, columnGap: 2, m: 0 }}>
-          <Box component="dt" sx={{ color: "text.secondary" }}>Name</Box>
-          <Box component="dd" sx={{ m: 0 }}>{session?.user.name ?? "Unknown user"}</Box>
-          <Box component="dt" sx={{ color: "text.secondary" }}>Email</Box>
-          <Box component="dd" sx={{ m: 0 }}>{session?.user.email ?? ""}</Box>
-        </Box>
-      </Box>
-    </Box>
-  );
-}
-
 function AppRoutes() {
   const router = createBrowserRouter([
     {
@@ -111,7 +87,7 @@ function AppRoutes() {
           children: [
             {
               index: true,
-              element: <UserSettingsPage />,
+              element: <SettingsPage />,
             },
           ],
         },

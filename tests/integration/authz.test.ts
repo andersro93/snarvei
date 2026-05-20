@@ -7,6 +7,7 @@ const app = createApp();
 
 const testEnv: AppBindings = {
   DB: env.DB,
+  PROFILE_IMAGES: {} as R2Bucket,
   AUTH_SECRET: "6b2bb1c1f08b4dcb8edc6fe6d64ed7135ecfa4012d3224d4203f3a1c4a2727b1",
   APP_URL: "http://localhost:8787",
   APP_NAME: "Snarvei",
@@ -41,6 +42,7 @@ const schemaStatements = [
     email TEXT NOT NULL UNIQUE,
     email_verified INTEGER NOT NULL DEFAULT 0,
     image TEXT,
+    two_factor_enabled INTEGER DEFAULT 0,
     created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
     updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
   )`,
@@ -78,6 +80,26 @@ const schemaStatements = [
     expires_at INTEGER NOT NULL,
     created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
     updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+  )`,
+  `CREATE TABLE IF NOT EXISTS two_factors (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    secret TEXT NOT NULL,
+    backup_codes TEXT NOT NULL,
+    verified INTEGER NOT NULL DEFAULT 0
+  )`,
+  `CREATE TABLE IF NOT EXISTS passkeys (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    public_key TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    credential_id TEXT NOT NULL UNIQUE,
+    counter INTEGER NOT NULL,
+    device_type TEXT NOT NULL,
+    backed_up INTEGER NOT NULL,
+    transports TEXT,
+    created_at INTEGER DEFAULT (unixepoch() * 1000),
+    aaguid TEXT
   )`,
   `CREATE TABLE IF NOT EXISTS organizations (
     id TEXT PRIMARY KEY,

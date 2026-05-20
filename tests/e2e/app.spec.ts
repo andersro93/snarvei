@@ -13,7 +13,7 @@ test("landing page renders product messaging", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByText("Short links you can trust long after they are shared.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
   await expect(page.getByText("Cloudflare Workers")).toBeVisible();
 });
 
@@ -80,7 +80,8 @@ test("user can create and manage a link end to end", async ({ page }) => {
 
   const openLink = page.getByRole("link", { name: "Open" });
   const hrefText = await openLink.getAttribute("href");
-  const slug = hrefText?.split("/l/").at(-1)?.trim();
+  const hrefParts = hrefText?.split("/l/");
+  const slug = hrefParts ? hrefParts[hrefParts.length - 1]?.trim() : undefined;
   expect(slug).toBeTruthy();
 
   const redirectResponse = await page.request.get(`/l/${slug}`, {
@@ -98,4 +99,38 @@ test("user can create and manage a link end to end", async ({ page }) => {
   await page.getByRole("button", { name: "Edit link" }).click();
   await clickTestIdButton(page, "delete-link-button");
   await expect(page).toHaveURL(new RegExp(`/app/${organizationSlug}/links$`));
+});
+
+test("user can open settings and update their profile name", async ({ page }) => {
+  const id = unique();
+  const name = `Owner ${id}`;
+  const updatedName = `Owner ${id} Updated`;
+  const email = `owner-settings-${id}@example.com`;
+  const password = "Password123!";
+  const organizationName = `Settings Org ${id}`;
+  const organizationSlug = `settings-org-${id}`;
+
+  await page.goto("/");
+
+  await page.getByTestId("auth-name-input").fill(name);
+  await page.getByTestId("auth-email-input").fill(email);
+  await page.getByTestId("auth-password-input").fill(password);
+  await clickTestIdButton(page, "create-account-button");
+
+  await expect(page.getByText("Choose your organization")).toBeVisible();
+  await page.getByRole("button", { name: "Create organization" }).click();
+  await page.getByTestId("organization-name-input").fill(organizationName);
+  await page.getByTestId("organization-slug-input").fill(organizationSlug);
+  await clickTestIdButton(page, "create-organization-button");
+
+  await page.getByRole("link", { name: "Settings" }).click();
+  await expect(page).toHaveURL(/\/app\/settings$/);
+  await expect(page.getByRole("heading", { name: "Your settings" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Active sessions" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Passkeys" })).toBeVisible();
+
+  await page.getByTestId("settings-name-input").fill(updatedName);
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page.getByText("Profile updated.")).toBeVisible();
+  await expect(page.getByText(updatedName).first()).toBeVisible();
 });
