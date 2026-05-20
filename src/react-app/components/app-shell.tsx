@@ -17,22 +17,40 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useWorkspace } from "../hooks/use-workspace-context";
+import { buildOrganizationPath, getOrganizationPathSegment, settingsPath } from "../lib/routes";
 import type { OrganizationSummary } from "../types";
 
 const drawerWidth = 280;
 
-const navItems = [
-  { to: "/app/dashboard", label: "Dashboard", icon: <DashboardOutlinedIcon /> },
-  { to: "/app/links", label: "Links", icon: <LinkOutlinedIcon /> },
-  { to: "/app/organization", label: "Organization", icon: <GroupsOutlinedIcon /> },
-];
-
 export function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { org } = useParams();
   const { activeOrganizationId, message, organizations, session, setMessage, signOut, switchOrganization } = useWorkspace();
+  const activeOrganization = organizations.find((organization) => organization.id === activeOrganizationId) ?? null;
+  const currentOrgSegment = org ?? getOrganizationPathSegment(activeOrganization);
+  const navItems = [
+    { to: currentOrgSegment ? `/app/${currentOrgSegment}/dashboard` : "/app", label: "Dashboard", icon: <DashboardOutlinedIcon /> },
+    { to: currentOrgSegment ? `/app/${currentOrgSegment}/links` : "/app", label: "Links", icon: <LinkOutlinedIcon /> },
+    { to: currentOrgSegment ? `/app/${currentOrgSegment}/organization` : "/app", label: "Organization", icon: <GroupsOutlinedIcon /> },
+    { to: settingsPath, label: "Settings", icon: <GroupsOutlinedIcon /> },
+  ];
+
+  useEffect(() => {
+    if (!org || !organizations.length) {
+      return;
+    }
+
+    const routeOrganization = organizations.find((organization) => organization.slug === org || organization.id === org);
+    if (!routeOrganization || routeOrganization.id === activeOrganizationId) {
+      return;
+    }
+
+    void switchOrganization(routeOrganization.id);
+  }, [activeOrganizationId, org, organizations, switchOrganization]);
 
   return (
     <Box sx={{ minHeight: "100vh", background: "#070b16", display: "flex" }}>
@@ -110,9 +128,8 @@ export function AppShell() {
                 const organizationId = event.target.value;
                 if (typeof organizationId === "string" && organizationId) {
                   void switchOrganization(organizationId).then(() => {
-                    if (!location.pathname.startsWith("/app/organization") && !location.pathname.startsWith("/app/links")) {
-                      navigate("/app/dashboard");
-                    }
+                    const nextOrganization = organizations.find((organization) => organization.id === organizationId);
+                    navigate(buildOrganizationPath(nextOrganization));
                   });
                 }
               }}

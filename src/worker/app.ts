@@ -13,6 +13,7 @@ export const createApp = () => {
   const app = new OpenAPIHono<{ Bindings: AppBindings; Variables: AppVariables }>();
 
   app.use("/api/me", sessionMiddleware);
+  app.use("/api/organizations/*", sessionMiddleware);
   app.use("/api/teams/*", sessionMiddleware);
   app.use("/api/links", sessionMiddleware);
   app.use("/api/links/*", sessionMiddleware);

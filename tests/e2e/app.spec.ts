@@ -44,13 +44,16 @@ test("user can create and manage a link end to end", async ({ page }) => {
   await page.getByTestId("organization-slug-input").fill(organizationSlug);
   await clickTestIdButton(page, "create-organization-button");
   await expect(page.getByText("Dashboard coming next")).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/app/${organizationSlug}/dashboard$`));
 
   await page.getByRole("link", { name: "Organization" }).click();
   await page.getByRole("button", { name: "Create team" }).click();
   await clickTestIdButton(page, "create-team-button");
   await expect(page.getByText(teamName)).toBeVisible();
+  await expect(page.getByText(`Manage members, invitations, and teams for ${organizationName}.`)).toBeVisible();
 
   await page.getByRole("link", { name: "Links" }).click();
+  await expect(page).toHaveURL(new RegExp(`/app/${organizationSlug}/links$`));
   await page.getByRole("button", { name: "Create link" }).click();
   await page.getByTestId("create-link-target-input").fill(initialTarget);
   await page.getByTestId("create-link-title-input").fill(linkTitle);
@@ -63,7 +66,8 @@ test("user can create and manage a link end to end", async ({ page }) => {
   ]);
   await expect(page.getByText("Short link created.")).toBeVisible();
   await expect(page.getByText(linkTitle)).toBeVisible();
-  await expect(page.getByText(initialTarget)).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/app/${organizationSlug}/links/[a-z0-9-]+$`));
+  await expect(page.getByText(initialTarget).first()).toBeVisible();
 
   await page.getByRole("button", { name: "Edit link" }).click();
   await page.getByTestId("selected-link-target-input").fill(updatedTarget);
@@ -93,5 +97,5 @@ test("user can create and manage a link end to end", async ({ page }) => {
 
   await page.getByRole("button", { name: "Edit link" }).click();
   await clickTestIdButton(page, "delete-link-button");
-  await expect(page).toHaveURL(/\/app\/links$/);
+  await expect(page).toHaveURL(new RegExp(`/app/${organizationSlug}/links$`));
 });

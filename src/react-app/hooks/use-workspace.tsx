@@ -37,7 +37,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [loadingLinks, setLoadingLinks] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [loadedOrganizationId, setLoadedOrganizationId] = useState<string | null>(null);
-  const [loadedTeamId, setLoadedTeamId] = useState<string | null>(null);
+  const [loadedLinksOrganizationId, setLoadedLinksOrganizationId] = useState<string | null>(null);
   const [loadedDetailsLinkId, setLoadedDetailsLinkId] = useState<string | null>(null);
 
   const appOrigin = typeof window === "undefined" ? "http://localhost:8787" : window.location.origin;
@@ -98,12 +98,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   );
 
   const visibleLinks = useMemo(
-    () => (effectiveTeamId && loadedTeamId === effectiveTeamId ? links : []),
-    [effectiveTeamId, links, loadedTeamId],
+    () => (activeOrganizationId && loadedLinksOrganizationId === activeOrganizationId ? links : []),
+    [activeOrganizationId, links, loadedLinksOrganizationId],
   );
 
   const effectiveSelectedLinkId = useMemo(() => {
-    if (!session || !effectiveTeamId) {
+    if (!session || !activeOrganizationId) {
       return null;
     }
 
@@ -112,7 +112,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
 
     return visibleLinks[0]?.id ?? null;
-  }, [effectiveTeamId, selectedLinkId, session, visibleLinks]);
+  }, [activeOrganizationId, selectedLinkId, session, visibleLinks]);
 
   const selectedLink = useMemo(
     () => visibleLinks.find((link) => link.id === effectiveSelectedLinkId) ?? null,
@@ -182,27 +182,27 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setLoadingInvitations(false);
   };
 
-  const refreshLinks = async (teamId: string, options?: { silent?: boolean }) => {
+  const refreshLinks = async (organizationId: string, options?: { silent?: boolean }) => {
     setLoadingLinks(true);
     try {
-      const response = await fetch(`/api/teams/${teamId}/links`, { credentials: "include" });
+      const response = await fetch(`/api/organizations/${organizationId}/links`, { credentials: "include" });
       if (!response.ok) {
         setLinks([]);
-        setLoadedTeamId(teamId);
+        setLoadedLinksOrganizationId(organizationId);
         if (!options?.silent) {
-          setMessage({ severity: "error", text: "Failed to load team links." });
+          setMessage({ severity: "error", text: "Failed to load organization links." });
         }
         return;
       }
 
       const data = (await response.json()) as Link[];
       setLinks(data);
-      setLoadedTeamId(teamId);
+      setLoadedLinksOrganizationId(organizationId);
     } catch {
       setLinks([]);
-      setLoadedTeamId(teamId);
+      setLoadedLinksOrganizationId(organizationId);
       if (!options?.silent) {
-        setMessage({ severity: "error", text: "Failed to load team links." });
+        setMessage({ severity: "error", text: "Failed to load organization links." });
       }
     } finally {
       setLoadingLinks(false);
@@ -253,14 +253,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   }, [activeOrganizationId, session]);
 
   useEffect(() => {
-    if (!effectiveTeamId || !session) {
+    if (!activeOrganizationId || !session) {
       return;
     }
 
     queueMicrotask(() => {
-      void refreshLinks(effectiveTeamId, { silent: true });
+      void refreshLinks(activeOrganizationId, { silent: true });
     });
-  }, [effectiveTeamId, session]);
+  }, [activeOrganizationId, session]);
 
   useEffect(() => {
     if (!selectedLink?.id) {
@@ -316,7 +316,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setHistory([]);
     setAnalytics(initialAnalytics);
     setLoadedOrganizationId(null);
-    setLoadedTeamId(null);
+    setLoadedLinksOrganizationId(null);
     setLoadedDetailsLinkId(null);
     await Promise.all([sessionQuery.refetch(), organizationsQuery.refetch()]);
   };
@@ -405,8 +405,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
 
     const createdLink = (await response.json()) as Link;
-    setLoadedTeamId(input.teamId);
-    setLinks((current) => [createdLink, ...current]);
+    setLoadedLinksOrganizationId(createdLink.organizationId);
+    setLinks((current) => [createdLink, ...current.filter((link) => link.id !== createdLink.id)]);
     setSelectedLinkId(createdLink.id);
     setMessage({ severity: "success", text: "Short link created." });
     setSubmitting(null);
@@ -516,6 +516,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const value: WorkspaceContextValue = {
     session,
     sessionPending: sessionQuery.isPending,
+    organizationsPending: organizationsQuery.isPending,
     organizations,
     activeOrganizationId,
     activeOrganization,
@@ -545,6 +546,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     createOrganization,
     createTeam,
     setActiveTeamId,
+    setSelectedLinkId,
     refreshOrganizations,
     refreshOrganizationData,
     refreshLinks,

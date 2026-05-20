@@ -11,6 +11,7 @@ export const LinkSchema = z
     id: z.string(),
     organizationId: z.string(),
     teamId: z.string(),
+    teamName: z.string().nullable().optional(),
     slug: z.string(),
     targetUrl: z.string().url(),
     redirectStatus: z.union([z.literal(301), z.literal(302), z.literal(307)]),
@@ -25,6 +26,10 @@ export const LinkSchema = z
   .openapi("Link");
 
 export type LinkDto = z.infer<typeof LinkSchema>;
+
+export const OrganizationLinksParamsSchema = z.object({
+  organizationId: z.string().openapi({ param: { name: "organizationId", in: "path" } }),
+});
 
 export const CreateLinkBodySchema = z.object({
   teamId: z.string(),
@@ -73,6 +78,24 @@ export const linkListRoute = createRoute({
   responses: {
     200: {
       description: "List links in a team",
+      content: { "application/json": { schema: z.array(LinkSchema) } },
+    },
+    403: {
+      description: "Forbidden",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+  },
+});
+
+export const organizationLinkListRoute = createRoute({
+  method: "get",
+  path: "/api/organizations/{organizationId}/links",
+  request: {
+    params: OrganizationLinksParamsSchema,
+  },
+  responses: {
+    200: {
+      description: "List links visible in an organization",
       content: { "application/json": { schema: z.array(LinkSchema) } },
     },
     403: {

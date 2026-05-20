@@ -1,9 +1,22 @@
 import { createContext } from "react";
-import type { AnalyticsSummary, AppMessage, HistoryItem, Invitation, InvitationRole, Link, Member, OrganizationSummary, SelectedLinkFormValues, SessionData, Team } from "../types";
+import type {
+  AnalyticsSummary,
+  AppMessage,
+  HistoryItem,
+  Invitation,
+  InvitationRole,
+  Link,
+  Member,
+  OrganizationSummary,
+  SelectedLinkFormValues,
+  SessionData,
+  Team,
+} from "../types";
 
 export type WorkspaceContextValue = {
   session: SessionData | null;
   sessionPending: boolean;
+  organizationsPending: boolean;
   organizations: OrganizationSummary[];
   activeOrganizationId: string | null;
   activeOrganization: OrganizationSummary | null;
@@ -33,9 +46,10 @@ export type WorkspaceContextValue = {
   createOrganization: (input: { name: string; slug: string }) => Promise<string | null>;
   createTeam: (input: { name: string }) => Promise<string | null>;
   setActiveTeamId: (teamId: string | null) => void;
+  setSelectedLinkId: (linkId: string | null) => void;
   refreshOrganizations: (options?: { silent?: boolean }) => Promise<void>;
   refreshOrganizationData: (organizationId: string, options?: { silent?: boolean }) => Promise<void>;
-  refreshLinks: (teamId: string, options?: { silent?: boolean }) => Promise<void>;
+  refreshLinks: (organizationId: string, options?: { silent?: boolean }) => Promise<void>;
   refreshSelectedLinkData: (linkId: string, options?: { silent?: boolean }) => Promise<void>;
   createLink: (input: {
     teamId: string;

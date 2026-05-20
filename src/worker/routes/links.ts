@@ -1,10 +1,10 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
-import { clickEvents, links, linkTargetHistory } from "../db/schema";
+import { clickEvents, links, linkTargetHistory, teamMembers, teams } from "../db/schema";
 import { getDb } from "../lib/db";
 import { generateSlug } from "../lib/slug";
-import { requireTeamAccess, requireUser } from "../middleware/guards";
+import { requireOrganizationAccess, requireTeamAccess, requireUser } from "../middleware/guards";
 import {
   analyticsRoute,
   createLinkRoute,
@@ -13,18 +13,47 @@ import {
   historyRoute,
   type LinkDto,
   linkListRoute,
+  organizationLinkListRoute,
   updateLinkRoute,
 } from "../openapi/schemas";
 import type { AppBindings, AppVariables } from "../lib/types";
 
 type AppRoute = OpenAPIHono<{ Bindings: AppBindings; Variables: AppVariables }>;
 
-const mapLink = (link: typeof links.$inferSelect): LinkDto => ({
+type LinkWithTeam = typeof links.$inferSelect & {
+  teamName?: string | null;
+};
+
+const mapLink = (link: LinkWithTeam): LinkDto => ({
   ...link,
+  teamName: link.teamName ?? null,
   redirectStatus: link.redirectStatus as LinkDto["redirectStatus"],
   createdAt: link.createdAt.toISOString(),
   updatedAt: link.updatedAt.toISOString(),
 });
+
+const selectLinkWithTeam = (db: ReturnType<typeof getDb>, linkId: string) =>
+  db
+    .select({
+      id: links.id,
+      organizationId: links.organizationId,
+      teamId: links.teamId,
+      teamName: teams.name,
+      slug: links.slug,
+      targetUrl: links.targetUrl,
+      redirectStatus: links.redirectStatus,
+      isActive: links.isActive,
+      title: links.title,
+      description: links.description,
+      createdBy: links.createdBy,
+      updatedBy: links.updatedBy,
+      createdAt: links.createdAt,
+      updatedAt: links.updatedAt,
+    })
+    .from(links)
+    .innerJoin(teams, eq(teams.id, links.teamId))
+    .where(eq(links.id, linkId))
+    .limit(1);
 
 export const registerLinkRoutes = (app: AppRoute) => {
   app.openapi(linkListRoute, async (c) => {
@@ -32,9 +61,75 @@ export const registerLinkRoutes = (app: AppRoute) => {
     await requireTeamAccess(c, teamId);
     const db = getDb(c);
 
-    const teamLinks = await db.select().from(links).where(eq(links.teamId, teamId)).orderBy(desc(links.createdAt));
+    const teamLinks = await db
+      .select({
+        id: links.id,
+        organizationId: links.organizationId,
+        teamId: links.teamId,
+        teamName: teams.name,
+        slug: links.slug,
+        targetUrl: links.targetUrl,
+        redirectStatus: links.redirectStatus,
+        isActive: links.isActive,
+        title: links.title,
+        description: links.description,
+        createdBy: links.createdBy,
+        updatedBy: links.updatedBy,
+        createdAt: links.createdAt,
+        updatedAt: links.updatedAt,
+      })
+      .from(links)
+      .innerJoin(teams, eq(teams.id, links.teamId))
+      .where(eq(links.teamId, teamId))
+      .orderBy(desc(links.createdAt));
 
     return c.json(teamLinks.map(mapLink), 200);
+  });
+
+  app.openapi(organizationLinkListRoute, async (c) => {
+    const user = requireUser(c);
+    const { organizationId } = c.req.valid("param");
+    const db = getDb(c);
+    const membership = await requireOrganizationAccess(c, organizationId);
+
+    const baseQuery = db
+      .select({
+        id: links.id,
+        organizationId: links.organizationId,
+        teamId: links.teamId,
+        teamName: teams.name,
+        slug: links.slug,
+        targetUrl: links.targetUrl,
+        redirectStatus: links.redirectStatus,
+        isActive: links.isActive,
+        title: links.title,
+        description: links.description,
+        createdBy: links.createdBy,
+        updatedBy: links.updatedBy,
+        createdAt: links.createdAt,
+        updatedAt: links.updatedAt,
+      })
+      .from(links)
+      .innerJoin(teams, eq(teams.id, links.teamId));
+
+    if (membership.role === "owner" || membership.role === "admin") {
+      const orgLinks = await baseQuery.where(eq(links.organizationId, organizationId)).orderBy(desc(links.createdAt));
+      return c.json(orgLinks.map(mapLink), 200);
+    }
+
+    const visibleTeamRows = await db
+      .select({ id: teamMembers.teamId })
+      .from(teamMembers)
+      .innerJoin(teams, eq(teams.id, teamMembers.teamId))
+      .where(and(eq(teamMembers.userId, user.id), eq(teams.organizationId, organizationId)));
+
+    const visibleTeamIds = visibleTeamRows.map((team) => team.id);
+    if (!visibleTeamIds.length) {
+      return c.json([], 200);
+    }
+
+    const orgLinks = await baseQuery.where(inArray(links.teamId, visibleTeamIds)).orderBy(desc(links.createdAt));
+    return c.json(orgLinks.map(mapLink), 200);
   });
 
   app.openapi(createLinkRoute, async (c) => {
@@ -79,7 +174,7 @@ export const registerLinkRoutes = (app: AppRoute) => {
       changedAt: now,
     });
 
-    const [created] = await db.select().from(links).where(eq(links.id, linkId)).limit(1);
+    const [created] = await selectLinkWithTeam(db, linkId);
     if (!created) {
       throw new HTTPException(500, { message: "Failed to create link" });
     }
@@ -91,7 +186,7 @@ export const registerLinkRoutes = (app: AppRoute) => {
     requireUser(c);
     const { linkId } = c.req.valid("param");
     const db = getDb(c);
-    const [link] = await db.select().from(links).where(eq(links.id, linkId)).limit(1);
+    const [link] = await selectLinkWithTeam(db, linkId);
     if (!link) {
       return c.json({ error: "Link not found" }, 404);
     }
@@ -144,7 +239,7 @@ export const registerLinkRoutes = (app: AppRoute) => {
       });
     }
 
-    const [updated] = await db.select().from(links).where(eq(links.id, linkId)).limit(1);
+    const [updated] = await selectLinkWithTeam(db, linkId);
     if (!updated) {
       throw new HTTPException(500, { message: "Failed to update link" });
     }

@@ -13,6 +13,7 @@ export type Link = {
   id: string;
   organizationId: string;
   teamId: string;
+  teamName?: string | null;
   slug: string;
   targetUrl: string;
   redirectStatus: 301 | 302 | 307;
@@ -72,6 +73,10 @@ export type SelectedLinkFormValues = {
 export type AppMessage = {
   severity: "success" | "error" | "info";
   text: string;
+};
+
+export type UserSettingsFormValues = {
+  name: string;
 };
 
 export type SessionData = {

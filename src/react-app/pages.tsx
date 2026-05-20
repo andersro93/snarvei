@@ -18,7 +18,7 @@ import {
   Typography,
 } from "@mui/material";
 import { DataGrid, type GridColDef, type GridEventListener, type GridRenderCellParams, type GridRowParams, Toolbar } from "@mui/x-data-grid";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AppShell } from "./components/app-shell";
 import {
@@ -31,6 +31,7 @@ import {
   InviteMemberDialog,
 } from "./components/dialogs";
 import { useWorkspace } from "./hooks/use-workspace-context";
+import { buildLinksPath, buildOrganizationPath } from "./lib/routes";
 import { roleLabel } from "./types";
 import type { Invitation, OrganizationSummary, Team } from "./types";
 
@@ -175,7 +176,7 @@ function OrganizationSelectionPage() {
                     </Box>
                     <Button
                       variant={activeOrganizationId === organization.id ? "contained" : "outlined"}
-                      onClick={() => void switchOrganization(organization.id).then(() => navigate("/app/dashboard"))}
+                      onClick={() => void switchOrganization(organization.id).then(() => navigate(buildOrganizationPath(organization)))}
                     >
                       Open workspace
                     </Button>
@@ -202,7 +203,7 @@ function OrganizationSelectionPage() {
         onSubmit={async (values) => {
           const createdOrganizationId = await createOrganization(values);
           if (createdOrganizationId) {
-            navigate("/app/dashboard");
+            navigate(buildOrganizationPath({ id: createdOrganizationId, slug: values.slug }));
             return true;
           }
           return false;
@@ -218,11 +219,17 @@ function DashboardPage() {
 
 function LinksPage() {
   const navigate = useNavigate();
-  const { activeTeam, activeTeamId, appOrigin, createLink, links, loadingLinks, submitting, teams } = useWorkspace();
+  const { activeOrganization, appOrigin, createLink, links, loadingLinks, submitting, teams } = useWorkspace();
   const [createLinkOpen, setCreateLinkOpen] = useState(false);
 
   const columns = useMemo<GridColDef[]>(
     () => [
+      {
+        field: "teamName",
+        headerName: "Team",
+        width: 180,
+        valueGetter: (value) => value || "Unknown team",
+      },
       {
         field: "fullLink",
         headerName: "Full link",
@@ -257,7 +264,7 @@ function LinksPage() {
   );
 
   const handleRowClick = (params: GridRowParams) => {
-    navigate(`/app/links/${params.id}`);
+    navigate(buildLinksPath(activeOrganization, String(params.id)));
   };
 
   const handleRowKeyDown: GridEventListener<"rowClick"> = () => undefined;
@@ -270,11 +277,11 @@ function LinksPage() {
             Links
           </Typography>
           <Typography color="text.secondary">
-            {activeTeam ? `Showing links for ${activeTeam.name}.` : "Create a team to start managing links."}
+            {activeOrganization ? `Showing links you can access in ${activeOrganization.name}.` : "Choose an organization to start managing links."}
           </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
-          <Button variant="contained" startIcon={<AddIcon />} disabled={!activeTeamId} onClick={() => setCreateLinkOpen(true)}>
+          <Button variant="contained" startIcon={<AddIcon />} disabled={!teams.length} onClick={() => setCreateLinkOpen(true)}>
             Create link
           </Button>
         </Stack>
@@ -303,13 +310,13 @@ function LinksPage() {
       <CreateLinkDialog
         open={createLinkOpen}
         teams={teams}
-        activeTeamId={activeTeamId}
+        activeTeamId={teams[0]?.id ?? null}
         submitting={submitting === "create-link"}
         onClose={() => setCreateLinkOpen(false)}
         onSubmit={async (values) => {
           const createdLink = await createLink(values);
           if (createdLink) {
-            navigate(`/app/links/${createdLink.id}`);
+            navigate(buildLinksPath(activeOrganization, createdLink.id));
             return true;
           }
           return false;
@@ -322,15 +329,19 @@ function LinksPage() {
 function LinkDetailsPage() {
   const navigate = useNavigate();
   const params = useParams();
-  const { analytics, appOrigin, deleteLink, getLinkById, history, loadingDetails, submitting, updateLink } = useWorkspace();
+  const { activeOrganization, analytics, appOrigin, deleteLink, getLinkById, history, loadingDetails, setSelectedLinkId, submitting, updateLink } = useWorkspace();
   const [editOpen, setEditOpen] = useState(false);
 
   const link = params.linkId ? getLinkById(params.linkId) : null;
 
+  useEffect(() => {
+    setSelectedLinkId(params.linkId ?? null);
+  }, [params.linkId, setSelectedLinkId]);
+
   if (!link) {
     return (
       <Alert severity="info">
-        The selected link is not available in the current team. Go back to the links grid and choose another row.
+        The selected link is not available in the current organization. Go back to the links grid and choose another row.
       </Alert>
     );
   }
@@ -339,7 +350,7 @@ function LinkDetailsPage() {
     <Stack spacing={3}>
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ justifyContent: "space-between", alignItems: { md: "center" } }}>
         <Box>
-          <Button startIcon={<ArrowBackRoundedIcon />} onClick={() => navigate("/app/links")} sx={{ mb: 1, px: 0 }}>
+          <Button startIcon={<ArrowBackRoundedIcon />} onClick={() => navigate(buildLinksPath(activeOrganization))} sx={{ mb: 1, px: 0 }}>
             Back to links
           </Button>
           <Typography variant="h4" sx={{ fontWeight: 800 }}>
@@ -470,7 +481,7 @@ function LinkDetailsPage() {
         onDelete={async () => {
           const deleted = await deleteLink(link.id);
           if (deleted) {
-            navigate("/app/links");
+            navigate(buildLinksPath(activeOrganization));
           }
           return deleted;
         }}
@@ -480,7 +491,7 @@ function LinkDetailsPage() {
 }
 
 function OrganizationPage() {
-  const { createTeam, invitations, loadingInvitations, members, submitting, teams, inviteMember } = useWorkspace();
+  const { activeOrganization, createTeam, invitations, loadingInvitations, members, submitting, teams, inviteMember } = useWorkspace();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
 
@@ -517,7 +528,7 @@ function OrganizationPage() {
           <Typography variant="h4" sx={{ fontWeight: 800 }}>
             Organization
           </Typography>
-          <Typography color="text.secondary">Manage members, invitations, and teams for the active organization.</Typography>
+          <Typography color="text.secondary">Manage members, invitations, and teams for {activeOrganization?.name ?? "the active organization"}.</Typography>
         </Box>
         <Stack direction="row" spacing={1}>
           <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setCreateTeamOpen(true)}>

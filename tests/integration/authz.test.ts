@@ -156,8 +156,11 @@ type AuthSession = {
 };
 
 type ProtectedFixture = {
+  organizationId: string;
   teamId: string;
+  otherTeamId: string;
   linkId: string;
+  otherLinkId: string;
 };
 
 type ProtectedRequestCase = {
@@ -199,7 +202,9 @@ const seedProtectedFixture = async (userId: string): Promise<ProtectedFixture> =
   const now = Date.now();
   const organizationId = createId("org");
   const teamId = createId("team");
+  const otherTeamId = createId("team");
   const linkId = createId("link");
+  const otherLinkId = createId("link");
 
   await env.DB.batch([
     env.DB
@@ -211,6 +216,9 @@ const seedProtectedFixture = async (userId: string): Promise<ProtectedFixture> =
     env.DB
       .prepare("INSERT INTO teams (id, name, organization_id, created_at) VALUES (?, ?, ?, ?)")
       .bind(teamId, `Team ${teamId}`, organizationId, now),
+    env.DB
+      .prepare("INSERT INTO teams (id, name, organization_id, created_at) VALUES (?, ?, ?, ?)")
+      .bind(otherTeamId, `Team ${otherTeamId}`, organizationId, now),
     env.DB
       .prepare("INSERT INTO team_members (id, team_id, user_id, created_at) VALUES (?, ?, ?, ?)")
       .bind(createId("team-member"), teamId, userId, now),
@@ -236,9 +244,31 @@ const seedProtectedFixture = async (userId: string): Promise<ProtectedFixture> =
         now,
         now,
       ),
+    env.DB
+      .prepare(
+        `INSERT INTO links (
+          id, organization_id, team_id, slug, target_url, redirect_status, is_active,
+          title, description, created_by, updated_by, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .bind(
+        otherLinkId,
+        organizationId,
+        otherTeamId,
+        `slug-${otherLinkId}`,
+        "https://example.com/other",
+        302,
+        1,
+        "Other seed link",
+        "Seeded for org-wide list tests",
+        userId,
+        userId,
+        now,
+        now,
+      ),
   ]);
 
-  return { teamId, linkId };
+  return { organizationId, teamId, otherTeamId, linkId, otherLinkId };
 };
 
 beforeAll(async () => {
@@ -250,6 +280,7 @@ beforeAll(async () => {
 describe("protected endpoint authentication", () => {
   const cases: Array<{ name: string; input: string; init?: RequestInit }> = [
     { name: "GET /api/me", input: "http://localhost/api/me" },
+    { name: "GET /api/organizations/:organizationId/links", input: "http://localhost/api/organizations/org-auth/links" },
     { name: "GET /api/teams/:teamId/links", input: "http://localhost/api/teams/team-auth/links" },
     {
       name: "POST /api/links",
@@ -281,6 +312,10 @@ describe("protected endpoint authentication", () => {
 
 describe("protected endpoint authorization", () => {
   const cases: Array<(fixture: ProtectedFixture) => ProtectedRequestCase> = [
+    (fixture: ProtectedFixture) => ({
+      name: "GET /api/organizations/:organizationId/links",
+      input: `http://localhost/api/organizations/${fixture.organizationId}/links`,
+    }),
     (fixture: ProtectedFixture) => ({
       name: "GET /api/teams/:teamId/links",
       input: `http://localhost/api/teams/${fixture.teamId}/links`,
@@ -319,7 +354,9 @@ describe("protected endpoint authorization", () => {
   ];
 
   for (const createCase of cases) {
-    it(`${createCase({ teamId: "team", linkId: "link" }).name} returns 403 for a user outside the team`, async () => {
+    it(
+      `${createCase({ organizationId: "org", teamId: "team", otherTeamId: "other-team", linkId: "link", otherLinkId: "other-link" }).name} returns 403 for a user outside the team`,
+      async () => {
       const owner = await signUpAndGetSession();
       const outsider = await signUpAndGetSession();
       const fixture = await seedProtectedFixture(owner.userId);
@@ -333,7 +370,8 @@ describe("protected endpoint authorization", () => {
       });
 
       expect(response.status).toBe(403);
-    });
+      },
+    );
   }
 });
 
@@ -355,6 +393,48 @@ describe("protected endpoint access for team members", () => {
     });
 
     expect(response.status).toBe(200);
+  });
+
+  it("GET /api/organizations/:organizationId/links returns only visible team links for a member", async () => {
+    const owner = await signUpAndGetSession();
+    const fixture = await seedProtectedFixture(owner.userId);
+    const member = await signUpAndGetSession();
+    const now = Date.now();
+
+    await env.DB.batch([
+      env.DB
+        .prepare("INSERT INTO members (id, organization_id, user_id, role, created_at) VALUES (?, ?, ?, ?, ?)")
+        .bind(createId("member"), fixture.organizationId, member.userId, "member", now),
+      env.DB
+        .prepare("INSERT INTO team_members (id, team_id, user_id, created_at) VALUES (?, ?, ?, ?)")
+        .bind(createId("team-member"), fixture.teamId, member.userId, now),
+    ]);
+
+    const response = await request(`http://localhost/api/organizations/${fixture.organizationId}/links`, {
+      headers: { cookie: member.cookie },
+    });
+
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as Array<{ id: string; teamId: string; teamName?: string | null }>;
+    expect(payload).toHaveLength(1);
+    expect(payload[0]?.id).toBe(fixture.linkId);
+    expect(payload[0]?.teamId).toBe(fixture.teamId);
+    expect(payload[0]?.teamName).toBe(`Team ${fixture.teamId}`);
+  });
+
+  it("GET /api/organizations/:organizationId/links returns all org links for an admin", async () => {
+    const admin = await signUpAndGetSession();
+    const fixture = await seedProtectedFixture(admin.userId);
+
+    await env.DB.prepare("UPDATE members SET role = ? WHERE organization_id = ? AND user_id = ?").bind("admin", fixture.organizationId, admin.userId).run();
+
+    const response = await request(`http://localhost/api/organizations/${fixture.organizationId}/links`, {
+      headers: { cookie: admin.cookie },
+    });
+
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as Array<{ id: string }>;
+    expect(payload.map((item) => item.id).sort()).toEqual([fixture.linkId, fixture.otherLinkId].sort());
   });
 
   it("POST /api/links returns 201 for a team member", async () => {
