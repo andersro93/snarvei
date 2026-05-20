@@ -252,6 +252,15 @@ Runtime environment values are configured in `wrangler.jsonc`:
 1. production at the top level
 2. `dev` under `env.dev`
 
+When using the Cloudflare Vite plugin, deployment environment is selected at build time via `CLOUDFLARE_ENV`, not by `wrangler deploy --env ...` alone.
+
+Examples:
+
+1. dev build and deploy:
+   `CLOUDFLARE_ENV=dev pnpm build && CLOUDFLARE_ENV=dev pnpm exec wrangler deploy`
+2. production build and deploy:
+   `pnpm build && pnpm exec wrangler deploy`
+
 Production auth also requires the Worker secret:
 
 1. `AUTH_SECRET`

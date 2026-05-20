@@ -37,16 +37,21 @@ test("user can create and manage a link end to end", async ({ page }) => {
   await page.getByTestId("auth-password-input").fill(password);
   await clickTestIdButton(page, "create-account-button");
 
-  await expect(page.getByText("Account created.")).toBeVisible();
-  await expect(page.getByText("Organizations").first()).toBeVisible();
+  await expect(page.getByText("Choose your organization")).toBeVisible();
+  await page.getByRole("button", { name: "Create organization" }).click();
 
   await page.getByTestId("organization-name-input").fill(organizationName);
   await page.getByTestId("organization-slug-input").fill(organizationSlug);
   await clickTestIdButton(page, "create-organization-button");
-  await expect(page.getByRole("button", { name: organizationName })).toBeVisible();
-  await clickTestIdButton(page, "create-team-button");
-  await expect(page.getByRole("button", { name: teamName })).toBeVisible();
+  await expect(page.getByText("Dashboard coming next")).toBeVisible();
 
+  await page.getByRole("link", { name: "Organization" }).click();
+  await page.getByRole("button", { name: "Create team" }).click();
+  await clickTestIdButton(page, "create-team-button");
+  await expect(page.getByText(teamName)).toBeVisible();
+
+  await page.getByRole("link", { name: "Links" }).click();
+  await page.getByRole("button", { name: "Create link" }).click();
   await page.getByTestId("create-link-target-input").fill(initialTarget);
   await page.getByTestId("create-link-title-input").fill(linkTitle);
   await page.getByTestId("create-link-description-input").fill("Created from Playwright coverage");
@@ -58,17 +63,18 @@ test("user can create and manage a link end to end", async ({ page }) => {
   ]);
   await expect(page.getByText("Short link created.")).toBeVisible();
   await expect(page.getByText(linkTitle)).toBeVisible();
-  await expect(page.getByText(initialTarget).first()).toBeVisible();
+  await expect(page.getByText(initialTarget)).toBeVisible();
 
-  await page.getByRole("button", { name: "Manage" }).first().click();
+  await page.getByRole("button", { name: "Edit link" }).click();
   await page.getByTestId("selected-link-target-input").fill(updatedTarget);
   await page.getByTestId("selected-link-title-input").fill(updatedLinkTitle);
   await page.getByTestId("selected-link-description-input").fill("Updated from Playwright coverage");
   await clickTestIdButton(page, "save-link-button");
   await expect(page.getByText(updatedLinkTitle)).toBeVisible();
   await expect(page.getByText(updatedTarget).first()).toBeVisible();
+  const detailUrl = page.url();
 
-  const openLink = page.getByRole("link", { name: "Open" }).first();
+  const openLink = page.getByRole("link", { name: "Open" });
   const hrefText = await openLink.getAttribute("href");
   const slug = hrefText?.split("/l/").at(-1)?.trim();
   expect(slug).toBeTruthy();
@@ -79,12 +85,13 @@ test("user can create and manage a link end to end", async ({ page }) => {
   expect(redirectResponse.status()).toBe(302);
   expect(redirectResponse.headers()["location"]).toBe(updatedTarget);
 
-  await page.getByRole("button", { name: "Refresh" }).click();
+  await page.goto(detailUrl);
+  await page.reload();
   await expect(page.getByTestId("analytics-total-clicks")).toHaveText("1");
   await expect(page.getByTestId("analytics-unique-visitors")).toHaveText("1");
   await expect(page.getByText(updatedTarget).first()).toBeVisible();
 
+  await page.getByRole("button", { name: "Edit link" }).click();
   await clickTestIdButton(page, "delete-link-button");
-  await expect(page.getByText(updatedLinkTitle)).not.toBeVisible();
-  await expect(page.getByText("Create your first link to start collecting analytics.")).toBeVisible();
+  await expect(page).toHaveURL(/\/app\/links$/);
 });

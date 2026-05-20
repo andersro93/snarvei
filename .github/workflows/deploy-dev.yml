@@ -38,7 +38,7 @@ jobs:
         run: pnpm cf-typegen
 
       - name: Build app
-        run: pnpm build
+        run: pnpm build:dev
 
       - name: Apply Dev D1 migrations
         env:
@@ -51,4 +51,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --env dev
+          command: deploy
+        env:
+          CLOUDFLARE_ENV: dev
