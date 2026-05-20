@@ -1,7 +1,8 @@
+import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
-import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import {
   Alert,
   Avatar,
@@ -18,12 +19,20 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect } from "react";
-import { NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useWorkspace } from "../hooks/use-workspace-context";
 import { buildOrganizationPath, getOrganizationPathSegment, settingsPath } from "../lib/routes";
 import type { OrganizationSummary } from "../types";
 
 const drawerWidth = 280;
+
+const matchesNavItem = (pathname: string, to?: string) => {
+  if (!to) {
+    return false;
+  }
+
+  return pathname === to || pathname.startsWith(`${to}/`);
+};
 
 export function AppShell() {
   const navigate = useNavigate();
@@ -33,10 +42,10 @@ export function AppShell() {
   const activeOrganization = organizations.find((organization) => organization.id === activeOrganizationId) ?? null;
   const currentOrgSegment = org ?? getOrganizationPathSegment(activeOrganization);
   const navItems = [
-    { to: currentOrgSegment ? `/app/${currentOrgSegment}/dashboard` : "/app", label: "Dashboard", icon: <DashboardOutlinedIcon /> },
-    { to: currentOrgSegment ? `/app/${currentOrgSegment}/links` : "/app", label: "Links", icon: <LinkOutlinedIcon /> },
-    { to: currentOrgSegment ? `/app/${currentOrgSegment}/organization` : "/app", label: "Organization", icon: <GroupsOutlinedIcon /> },
-    { to: settingsPath, label: "Settings", icon: <GroupsOutlinedIcon /> },
+    { to: currentOrgSegment ? `/app/${currentOrgSegment}/dashboard` : undefined, label: "Dashboard", icon: <DashboardOutlinedIcon /> },
+    { to: currentOrgSegment ? `/app/${currentOrgSegment}/links` : undefined, label: "Links", icon: <LinkOutlinedIcon /> },
+    { to: currentOrgSegment ? `/app/${currentOrgSegment}/organization` : undefined, label: "Organization", icon: <BusinessOutlinedIcon /> },
+    { to: settingsPath, label: "Settings", icon: <SettingsOutlinedIcon /> },
   ];
 
   useEffect(() => {
@@ -89,12 +98,13 @@ export function AppShell() {
 
           <List sx={{ gap: 1, display: "grid" }}>
             {navItems.map((item) => {
-              const selected = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
+              const selected = matchesNavItem(location.pathname, item.to);
               return (
                 <ListItemButton
-                  key={item.to}
-                  component={NavLink}
-                  to={item.to}
+                  key={item.label}
+                  component={Link}
+                  to={item.to ?? "#"}
+                  disabled={!item.to}
                   selected={selected}
                   sx={{
                     borderRadius: 3,
