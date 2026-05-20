@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import { authClient } from "../../../lib/auth-client";
-import type { AuthSession, PasskeySummary, SessionData } from "../../../types";
-
-type AppMessage = {
-  severity: "success" | "error" | "info";
-  text: string;
-};
+import type { AppMessage, AuthSession, PasskeySummary, SessionData } from "../../../types";
 
 export function useSettingsState(options: {
   session: SessionData | null;
