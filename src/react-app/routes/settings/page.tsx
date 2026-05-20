@@ -1,6 +1,6 @@
 import { Button, Divider, Stack, Typography } from "@mui/material";
+import { useWorkspace } from "../../hooks/use-workspace-context";
 import { useSettingsState } from "./hooks/use-settings-state";
-import { useWorkspace } from "./hooks/use-workspace-context";
 import {
   EmailSection,
   PasskeysSection,
@@ -8,7 +8,7 @@ import {
   ProfileSection,
   SessionsSection,
   TwoFactorSection,
-} from "./settings-sections";
+} from "./components";
 
 export function SettingsPage() {
   const { refreshSessionState, session, setMessage, signOut } = useWorkspace();

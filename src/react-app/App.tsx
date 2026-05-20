@@ -1,10 +1,16 @@
 import { CircularProgress, CssBaseline, ThemeProvider, Box, createTheme } from "@mui/material";
 import { createBrowserRouter, Navigate, Outlet, RouterProvider, useParams } from "react-router-dom";
-import { AppShell, DashboardPage, LandingPage, LinkDetailsPage, LinksPage, OrganizationPage, OrganizationSelectionPage } from "./pages";
-import { buildOrganizationPath, settingsPath } from "./lib/routes";
+import { AppShell } from "./components/app-shell";
 import { WorkspaceProvider } from "./hooks/use-workspace";
 import { useWorkspace } from "./hooks/use-workspace-context";
-import { SettingsPage } from "./settings-page";
+import { buildOrganizationPath, settingsPath } from "./lib/routes";
+import { DashboardPage } from "./routes/dashboard/page";
+import { LandingPage } from "./routes/landing/page";
+import { LinkDetailsPage } from "./routes/link-details/page";
+import { LinksPage } from "./routes/links/page";
+import { OrganizationPage } from "./routes/organization/page";
+import { OrganizationSelectionPage } from "./routes/organization-selection/page";
+import { SettingsPage } from "./routes/settings/page";
 
 const theme = createTheme({
   palette: {

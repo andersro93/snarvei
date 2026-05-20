@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { authClient } from "../lib/auth-client";
-import type { AuthSession, PasskeySummary, SessionData } from "../types";
+import { authClient } from "../../../lib/auth-client";
+import type { AuthSession, PasskeySummary, SessionData } from "../../../types";
 
 type AppMessage = {
   severity: "success" | "error" | "info";
