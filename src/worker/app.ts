@@ -12,7 +12,10 @@ import { registerLinkRoutes } from "./routes/links";
 export const createApp = () => {
   const app = new OpenAPIHono<{ Bindings: AppBindings; Variables: AppVariables }>();
 
-  app.use("*", sessionMiddleware);
+  app.use("/api/me", sessionMiddleware);
+  app.use("/api/teams/*", sessionMiddleware);
+  app.use("/api/links", sessionMiddleware);
+  app.use("/api/links/*", sessionMiddleware);
 
   app.on(["GET", "POST"], "/api/auth/*", async (c) => createAuth(c.env).handler(c.req.raw));
 

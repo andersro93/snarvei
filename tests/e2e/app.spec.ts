@@ -4,21 +4,9 @@ import type { Page } from "@playwright/test";
 const unique = () => crypto.randomUUID().slice(0, 8);
 
 const clickTestIdButton = async (page: Page, testId: string) => {
-  await page.waitForFunction(
-    (id) => {
-      const element = document.querySelector(`[data-testid="${id}"]`);
-      return element instanceof HTMLButtonElement && !element.disabled;
-    },
-    testId,
-  );
-
-  await page.evaluate((id) => {
-    const element = document.querySelector(`[data-testid="${id}"]`);
-    if (!(element instanceof HTMLButtonElement)) {
-      throw new Error(`Button ${id} not found`);
-    }
-    element.click();
-  }, testId);
+  const button = page.getByTestId(testId);
+  await expect(button).toBeEnabled();
+  await button.click();
 };
 
 test("landing page renders product messaging", async ({ page }) => {
@@ -70,7 +58,7 @@ test("user can create and manage a link end to end", async ({ page }) => {
   ]);
   await expect(page.getByText("Short link created.")).toBeVisible();
   await expect(page.getByText(linkTitle)).toBeVisible();
-  await expect(page.getByText(initialTarget)).toBeVisible();
+  await expect(page.getByText(initialTarget).first()).toBeVisible();
 
   await page.getByRole("button", { name: "Manage" }).first().click();
   await page.getByTestId("selected-link-target-input").fill(updatedTarget);
