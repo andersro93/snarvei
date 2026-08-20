@@ -33,8 +33,8 @@ export function CreateOrganizationDialog({
   onClose: () => void;
   onSubmit: (values: { name: string; slug: string }) => Promise<boolean>;
 }) {
-  const [name, setName] = useState("Snarvei Labs");
-  const [slug, setSlug] = useState("snarvei-labs");
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -87,7 +87,7 @@ export function CreateTeamDialog({
   onClose: () => void;
   onSubmit: (values: { name: string }) => Promise<boolean>;
 }) {
-  const [name, setName] = useState("Growth");
+  const [name, setName] = useState("");
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -181,9 +181,9 @@ function CreateLinkDialogForm({
   }) => Promise<boolean>;
 }) {
   const [teamId, setTeamId] = useState(defaultTeamId);
-  const [targetUrl, setTargetUrl] = useState("https://example.com");
-  const [title, setTitle] = useState("Campaign landing page");
-  const [description, setDescription] = useState("Primary CTA link for the launch campaign");
+  const [targetUrl, setTargetUrl] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [redirectStatus, setRedirectStatus] = useState<301 | 302 | 307>(302);
 
   return (
@@ -270,7 +270,7 @@ export function InviteMemberDialog({
   onClose: () => void;
   onSubmit: (values: { email: string; role: InvitationRole; teamId?: string | null }) => Promise<boolean>;
 }) {
-  const [email, setEmail] = useState("member@example.com");
+  const [email, setEmail] = useState("");
   const [role, setRole] = useState<InvitationRole>("member");
   const [teamId, setTeamId] = useState<string>("");
 

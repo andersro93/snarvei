@@ -8,6 +8,7 @@ import {
   CircularProgress,
   Paper,
   Stack,
+  TextField,
   Typography,
 } from "@mui/material";
 import { useState } from "react";
@@ -34,9 +35,9 @@ export function LandingPage() {
   const afterAuthPath = nextParam && nextParam.startsWith("/app/") ? nextParam : "/app/select-organization";
   const { message, refreshOrganizations, refreshSessionState, session, sessionPending, setMessage, signIn, signUp, submitting } =
     useWorkspace();
-  const [email, setEmail] = useState("owner@example.com");
-  const [name, setName] = useState("Anders");
-  const [password, setPassword] = useState("Password123!");
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
   const [twoFactorCode, setTwoFactorCode] = useState("");
   const [twoFactorMethod, setTwoFactorMethod] = useState<"totp" | "backup">("totp");
   const [twoFactorRequired, setTwoFactorRequired] = useState(false);
@@ -98,43 +99,66 @@ export function LandingPage() {
                   {message.text}
                 </Alert>
               ) : null}
-              <input hidden aria-hidden value={name} readOnly />
-              <Box>
-                <Typography variant="body2" sx={{ mb: 1 }}>Name</Typography>
-                <input data-testid="auth-name-input" value={name} onChange={(event) => setName(event.target.value)} style={inputStyle} />
+              <Box
+                component="form"
+                noValidate
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void signIn({ email, password }).then((result) => {
+                    setTwoFactorRequired(Boolean(result.requiresTwoFactor));
+                    if (result.ok) {
+                      navigate(afterAuthPath);
+                    }
+                  });
+                }}
+              >
+                <Stack spacing={2}>
+                  <TextField
+                    label="Name"
+                    placeholder="Your name (only needed to create an account)"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    autoComplete="name"
+                    fullWidth
+                    slotProps={{ htmlInput: { "data-testid": "auth-name-input" } }}
+                  />
+                  <TextField
+                    label="Email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    autoComplete="email"
+                    required
+                    fullWidth
+                    slotProps={{ htmlInput: { "data-testid": "auth-email-input" } }}
+                  />
+                  <TextField
+                    label="Password"
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    autoComplete="current-password"
+                    required
+                    fullWidth
+                    slotProps={{ htmlInput: { "data-testid": "auth-password-input" } }}
+                  />
+                  <Stack direction="row" spacing={2}>
+                    <Button type="submit" variant="contained" disabled={submitting === "signin" || !email || !password} data-testid="sign-in-button">
+                      Sign in
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outlined"
+                      disabled={submitting === "signup" || !email || !password || !name.trim()}
+                      data-testid="create-account-button"
+                      onClick={() => void signUp({ name: name.trim(), email, password }).then((ok: boolean) => ok && navigate(afterAuthPath))}
+                    >
+                      Create account
+                    </Button>
+                  </Stack>
+                </Stack>
               </Box>
-              <Box>
-                <Typography variant="body2" sx={{ mb: 1 }}>Email</Typography>
-                <input data-testid="auth-email-input" value={email} onChange={(event) => setEmail(event.target.value)} style={inputStyle} />
-              </Box>
-              <Box>
-                <Typography variant="body2" sx={{ mb: 1 }}>Password</Typography>
-                <input data-testid="auth-password-input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} style={inputStyle} />
-              </Box>
-              <Stack direction="row" spacing={2}>
-                <Button
-                  variant="contained"
-                  disabled={submitting === "signin"}
-                  onClick={() =>
-                    void signIn({ email, password }).then((result) => {
-                      setTwoFactorRequired(Boolean(result.requiresTwoFactor));
-                      if (result.ok) {
-                        navigate(afterAuthPath);
-                      }
-                    })
-                  }
-                >
-                  Sign in
-                </Button>
-                <Button
-                  variant="outlined"
-                  disabled={submitting === "signup"}
-                  data-testid="create-account-button"
-                  onClick={() => void signUp({ name, email, password }).then((ok: boolean) => ok && navigate(afterAuthPath))}
-                >
-                  Create account
-                </Button>
-              </Stack>
               <Button
                 variant="text"
                 onClick={() =>
