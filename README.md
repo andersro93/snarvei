@@ -204,9 +204,10 @@ GitHub Actions is used for CI/CD.
 Current pipeline behavior:
 
 1. On every pull request and push, run lint, typecheck/build, Vitest, and Playwright.
-2. On pushes to `main`, deploy the `dev` Cloudflare Worker environment after CI passes.
-3. Production deployment is a manual GitHub Actions workflow.
-4. Before each deploy, apply remote D1 migrations.
+2. When CI succeeds for a push to `main`, the `Deploy Dev` workflow (triggered via `workflow_run`) deploys the `dev` Cloudflare Worker environment. A red CI run never deploys.
+3. Production deployment is a manual GitHub Actions workflow; it refuses to deploy a commit that has no successful `Validate` check run.
+4. Before each deploy, list and apply remote D1 migrations. Deploy runs are queued, never cancelled mid-flight.
+5. `main` is protected by a ruleset: changes land via pull request with a green `Validate` check; force-pushes are blocked.
 
 Deployment credentials are configured in GitHub:
 
