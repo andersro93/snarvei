@@ -147,19 +147,19 @@ export const createApp = (deps: AppDeps = {}) => {
 
   app.use("*", envMiddleware);
   app.use("*", secureHeaders(baseSecurityHeaders));
-  // The docs page loads the Scalar bundle from jsDelivr and has an inline
-  // config script, so it gets its own CSP with a per-request nonce.
+  // The docs page loads the self-hosted Scalar bundle and has an inline config
+  // script, so it gets its own CSP with a per-request nonce.
   app.use(
     "/scalar",
     secureHeaders({
       ...baseSecurityHeaders,
       contentSecurityPolicy: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", NONCE, "https://cdn.jsdelivr.net"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.scalar.com", "https://cdn.jsdelivr.net"],
+        scriptSrc: ["'self'", NONCE],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.scalar.com"],
         fontSrc: ["'self'", "data:", "https://fonts.scalar.com"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
+        connectSrc: ["'self'"],
         frameAncestors: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],

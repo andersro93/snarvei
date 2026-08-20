@@ -1,4 +1,7 @@
-/** Scalar API reference page. `nonce` must match the CSP set for this route. */
+/**
+ * Scalar API reference page. The bundle is served from our own origin (see the
+ * scalar-vendor plugin in vite.config.ts); `nonce` must match the CSP for this route.
+ */
 export const renderScalarPage = (openApiUrl: string, nonce: string) => `<!doctype html>
 <html lang="en">
   <head>
@@ -16,7 +19,7 @@ export const renderScalarPage = (openApiUrl: string, nonce: string) => `<!doctyp
   </head>
   <body>
     <div id="app"></div>
-    <script nonce="${nonce}" src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+    <script nonce="${nonce}" src="/vendor/scalar-api-reference.js"></script>
     <script nonce="${nonce}">
       Scalar.createApiReference('#app', {
         url: '${openApiUrl}',

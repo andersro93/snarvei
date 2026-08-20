@@ -17,14 +17,21 @@ describe("security headers on Worker responses", () => {
     expectCommonHeaders(response);
   });
 
-  it("sets them on the Scalar docs page with a CSP that only allows the docs script", async () => {
+  it("sets them on the Scalar docs page with a same-origin CSP (no third-party script hosts)", async () => {
     const response = await request(`${ORIGIN}/scalar`);
     expect(response.status).toBe(200);
     expectCommonHeaders(response);
     const csp = response.headers.get("content-security-policy") ?? "";
     expect(csp).toContain("default-src 'self'");
     expect(csp).toContain("frame-ancestors 'none'");
-    expect(csp).toMatch(/script-src [^;]*cdn\.jsdelivr\.net/);
+    expect(csp).toMatch(/script-src 'self' 'nonce-[^']+'(;| )/);
+    expect(csp).not.toContain("jsdelivr");
+  });
+
+  it("serves the Scalar bundle from our own origin instead of a floating CDN URL", async () => {
+    const html = await (await request(`${ORIGIN}/scalar`)).text();
+    expect(html).toContain('src="/vendor/scalar-api-reference.js"');
+    expect(html).not.toContain("cdn.jsdelivr.net");
   });
 
   it("sets them on redirect misses without interfering with the redirect itself", async () => {
