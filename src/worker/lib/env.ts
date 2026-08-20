@@ -1,4 +1,5 @@
 import { createMiddleware } from "hono/factory";
+import { log } from "./log";
 import type { AppBindings, AppVariables } from "./types";
 
 const MIN_SECRET_LENGTH = 32;
@@ -41,13 +42,7 @@ export const envMiddleware = createMiddleware<{ Bindings: AppBindings; Variables
   try {
     validateEnv(c.env);
   } catch (error) {
-    console.error(
-      JSON.stringify({
-        level: "error",
-        event: "env.invalid",
-        message: error instanceof Error ? error.message : String(error),
-      }),
-    );
+    log.error("env.invalid", { message: error instanceof Error ? error.message : String(error) });
     return c.json({ error: "Server misconfigured" }, 500);
   }
 

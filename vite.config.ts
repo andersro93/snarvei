@@ -42,5 +42,9 @@ const scalarVendorPlugin = (): Plugin => {
 };
 
 export default defineConfig({
+  // Baked into both bundles at build time; CI sets GITHUB_SHA, local builds report "dev".
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.APP_VERSION ?? process.env.GITHUB_SHA ?? "dev"),
+  },
   plugins: [react(), cloudflare(), scalarVendorPlugin()],
 });

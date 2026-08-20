@@ -7,6 +7,8 @@ import { type AuthDeps, createAuth } from "./lib/auth";
 import { hashIp } from "./lib/crypto";
 import { envMiddleware, ipHashPepper } from "./lib/env";
 import { errorJson, notFound, onError, validationHook } from "./lib/errors";
+import { log } from "./lib/log";
+import { resolveAppVersion } from "./lib/version";
 import { rateLimitMiddleware } from "./lib/rate-limit";
 import { getDb } from "./lib/db";
 import { renderScalarPage } from "./lib/scalar";
@@ -65,7 +67,22 @@ const registerPlainRoutesInOpenApi = (app: OpenAPIHono<{ Bindings: AppBindings; 
     path: "/api/health",
     summary: "Health check",
     responses: {
-      200: { description: "Service is up", content: { "application/json": { schema: z.object({ ok: z.literal(true), service: z.string() }) } } },
+      200: {
+        description: "Service is up (database reachable)",
+        content: {
+          "application/json": {
+            schema: z.object({ ok: z.literal(true), service: z.string(), version: z.string(), checks: z.record(z.string(), z.string()) }),
+          },
+        },
+      },
+      503: {
+        description: "A dependency check failed",
+        content: {
+          "application/json": {
+            schema: z.object({ ok: z.literal(false), service: z.string(), version: z.string(), checks: z.record(z.string(), z.string()) }),
+          },
+        },
+      },
       500: jsonError("Server misconfigured"),
     },
   });
@@ -327,7 +344,21 @@ export const createApp = (deps: AppDeps = {}) => {
     return c.redirect(link.targetUrl, link.redirectStatus as 301 | 302 | 307);
   });
 
-  app.get("/api/health", (c) => c.json({ ok: true, service: "snarvei" }));
+  app.get("/api/health", async (c) => {
+    c.header("cache-control", "no-store");
+    const checks: Record<string, string> = {};
+    try {
+      await c.env.DB.prepare("SELECT 1").first();
+      checks.database = "ok";
+    } catch (error) {
+      checks.database = `error: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    const ok = Object.values(checks).every((value) => value === "ok");
+    if (!ok) {
+      log.error("health.degraded", { checks });
+    }
+    return c.json({ ok, service: "snarvei", version: resolveAppVersion(c.env.APP_VERSION), checks }, ok ? 200 : 503);
+  });
 
   return app;
 };
