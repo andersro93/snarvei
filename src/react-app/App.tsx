@@ -1,6 +1,15 @@
 import { Alert, Box, Button, CircularProgress, CssBaseline, Stack, ThemeProvider, Typography, createTheme } from "@mui/material";
 import { Suspense, lazy } from "react";
-import { createBrowserRouter, Navigate, Outlet, RouterProvider, isRouteErrorResponse, useLocation, useParams, useRouteError } from "react-router-dom";
+import {
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  RouterProvider,
+  isRouteErrorResponse,
+  useLocation,
+  useParams,
+  useRouteError,
+} from "react-router-dom";
 import { AppShell } from "./components/app-shell";
 import { WorkspaceProvider } from "./hooks/use-workspace";
 import { useWorkspace } from "./hooks/use-workspace-context";
@@ -130,61 +139,61 @@ const router = createBrowserRouter([
     element: <RequireSession />,
     errorElement: <RouteError />,
     children: [
-        {
-          path: "/app/select-organization",
-          element: <OrganizationSelectionPage />,
-        },
-        {
-          path: "/app/invitations/:invitationId",
-          element: <InvitationPage />,
-        },
-        {
-          path: settingsPath,
-          element: <AppShell />,
-          children: [
-            {
-              index: true,
-              element: <SettingsPage />,
-            },
-          ],
-        },
-        {
-          path: "/app",
-          element: <AppShell />,
-          children: [
-            {
-              index: true,
-              element: <OrganizationIndexRedirect />,
-            },
-            {
-              path: ":org",
-              children: [
-                {
-                  index: true,
-                  element: <OrganizationIndexRedirect />,
-                },
-                {
-                  path: "dashboard",
-                  element: <DashboardPage />,
-                },
-                {
-                  path: "links",
-                  element: <LinksPage />,
-                },
-                {
-                  path: "links/:linkId",
-                  element: <LinkDetailsPage />,
-                },
-                {
-                  path: "organization",
-                  element: <OrganizationPage />,
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    },
+      {
+        path: "/app/select-organization",
+        element: <OrganizationSelectionPage />,
+      },
+      {
+        path: "/app/invitations/:invitationId",
+        element: <InvitationPage />,
+      },
+      {
+        path: settingsPath,
+        element: <AppShell />,
+        children: [
+          {
+            index: true,
+            element: <SettingsPage />,
+          },
+        ],
+      },
+      {
+        path: "/app",
+        element: <AppShell />,
+        children: [
+          {
+            index: true,
+            element: <OrganizationIndexRedirect />,
+          },
+          {
+            path: ":org",
+            children: [
+              {
+                index: true,
+                element: <OrganizationIndexRedirect />,
+              },
+              {
+                path: "dashboard",
+                element: <DashboardPage />,
+              },
+              {
+                path: "links",
+                element: <LinksPage />,
+              },
+              {
+                path: "links/:linkId",
+                element: <LinkDetailsPage />,
+              },
+              {
+                path: "organization",
+                element: <OrganizationPage />,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
 ]);
 
 export function App() {
