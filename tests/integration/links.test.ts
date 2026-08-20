@@ -28,6 +28,21 @@ describe("public redirect /l/:slug", () => {
     expect(event?.redirect_status_used).toBe(302);
   });
 
+  it.each([301, 302, 307] as const)("marks %i redirects as non-cacheable so retargeting always takes effect", async (status) => {
+    const { owner, team } = await setupWorkspace();
+    const link = await createLink(owner, { teamId: team.id, targetUrl: "https://example.com/c", redirectStatus: status });
+
+    const response = await request(`${ORIGIN}/l/${link.slug}`);
+    expect(response.status).toBe(status);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("marks 404 responses for unknown slugs as non-cacheable", async () => {
+    const response = await request(`${ORIGIN}/l/nope-${crypto.randomUUID().slice(0, 6)}`);
+    expect(response.status).toBe(404);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+
   it.each([301, 307] as const)("honours a %i redirect status", async (status) => {
     const { owner, team } = await setupWorkspace();
     const link = await createLink(owner, { teamId: team.id, targetUrl: "https://example.com/a", redirectStatus: status });
