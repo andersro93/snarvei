@@ -20,8 +20,8 @@ export type Link = {
   isActive: boolean;
   title: string | null;
   description: string | null;
-  createdBy: string;
-  updatedBy: string;
+  createdBy: string | null;
+  updatedBy: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -50,7 +50,7 @@ export type HistoryItem = {
   id: string;
   oldTargetUrl: string | null;
   newTargetUrl: string;
-  changedBy: string;
+  changedBy: string | null;
   changedAt: string;
 };
 

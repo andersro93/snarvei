@@ -63,8 +63,8 @@ export const LinkSchema = z
     isActive: z.boolean(),
     title: z.string().nullable(),
     description: z.string().nullable(),
-    createdBy: z.string(),
-    updatedBy: z.string(),
+    createdBy: z.string().nullable(),
+    updatedBy: z.string().nullable(),
     createdAt: z.string(),
     updatedAt: z.string(),
   })
@@ -97,7 +97,7 @@ export const HistoryItemSchema = z
     id: z.string(),
     oldTargetUrl: z.string().nullable(),
     newTargetUrl: z.string(),
-    changedBy: z.string(),
+    changedBy: z.string().nullable(),
     changedAt: z.string(),
   })
   .openapi("LinkTargetHistoryItem");

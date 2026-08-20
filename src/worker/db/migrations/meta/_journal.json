@@ -36,6 +36,13 @@
       "when": 1787258500127,
       "tag": "0004_jittery_hellfire_club",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1787260081232,
+      "tag": "0005_square_nick_fury",
+      "breakpoints": true
     }
   ]
 }
