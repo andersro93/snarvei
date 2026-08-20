@@ -97,7 +97,25 @@ type SnarveiAuthClient = {
       teamId?: string;
     }) => ClientResult<unknown>;
     cancelInvitation: (input: { invitationId: string }) => ClientResult<unknown>;
+    getInvitation: (input: { query: { id: string } }) => ClientResult<InvitationDetails>;
+    acceptInvitation: (input: { invitationId: string }) => ClientResult<unknown>;
+    rejectInvitation: (input: { invitationId: string }) => ClientResult<unknown>;
+    addTeamMember: (input: { teamId: string; userId: string; organizationId?: string }) => ClientResult<unknown>;
+    removeTeamMember: (input: { teamId: string; userId: string; organizationId?: string }) => ClientResult<unknown>;
   };
+};
+
+export type InvitationDetails = {
+  id: string;
+  email: string;
+  role: string | string[];
+  status: string;
+  expiresAt?: string | number;
+  organizationId: string;
+  organizationName: string;
+  organizationSlug?: string;
+  inviterEmail?: string;
+  teamId?: string | null;
 };
 
 // Better Auth's organization plugin currently exposes non-portable inferred types under TS 6.

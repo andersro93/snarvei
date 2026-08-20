@@ -1,5 +1,5 @@
 import { CircularProgress, CssBaseline, ThemeProvider, Box, createTheme } from "@mui/material";
-import { createBrowserRouter, Navigate, Outlet, RouterProvider, useParams } from "react-router-dom";
+import { createBrowserRouter, Navigate, Outlet, RouterProvider, useParams, useLocation } from "react-router-dom";
 import { AppShell } from "./components/app-shell";
 import { WorkspaceProvider } from "./hooks/use-workspace";
 import { useWorkspace } from "./hooks/use-workspace-context";
@@ -9,6 +9,7 @@ import { LandingPage } from "./routes/landing/page";
 import { LinkDetailsPage } from "./routes/link-details/page";
 import { LinksPage } from "./routes/links/page";
 import { OrganizationPage } from "./routes/organization/page";
+import { InvitationPage } from "./routes/invitation/page";
 import { OrganizationSelectionPage } from "./routes/organization-selection/page";
 import { SettingsPage } from "./routes/settings/page";
 
@@ -36,6 +37,7 @@ const theme = createTheme({
 
 function RequireSession() {
   const { session, sessionPending } = useWorkspace();
+  const location = useLocation();
 
   if (sessionPending) {
     return (
@@ -46,7 +48,9 @@ function RequireSession() {
   }
 
   if (!session) {
-    return <Navigate to="/" replace />;
+    // Keep the destination (e.g. an invitation link) through sign-in/sign-up.
+    const next = `${location.pathname}${location.search}`;
+    return <Navigate to={next.startsWith("/app/") ? `/?next=${encodeURIComponent(next)}` : "/"} replace />;
   }
 
   return <Outlet />;
@@ -86,6 +90,10 @@ function AppRoutes() {
         {
           path: "/app/select-organization",
           element: <OrganizationSelectionPage />,
+        },
+        {
+          path: "/app/invitations/:invitationId",
+          element: <InvitationPage />,
         },
         {
           path: settingsPath,

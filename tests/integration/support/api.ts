@@ -55,9 +55,9 @@ export const extractSessionCookie = (response: Response) => {
 
 export type TestUser = { cookie: string; userId: string; email: string; ip: string };
 
-export const signUp = async (): Promise<TestUser> => {
+export const signUp = async (options: { email?: string } = {}): Promise<TestUser> => {
   const suffix = crypto.randomUUID();
-  const email = `user-${suffix}@example.com`;
+  const email = options.email ?? `user-${suffix}@example.com`;
   const ip = randomIp();
   const response = await request(`${ORIGIN}/api/auth/sign-up/email`, {
     ...jsonInit("POST", { name: `User ${suffix}`, email, password: "Password123!" }),

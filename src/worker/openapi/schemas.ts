@@ -130,6 +130,36 @@ export const AnalyticsSummarySchema = z
   })
   .openapi("AnalyticsSummary");
 
+export const TeamMemberSchema = z
+  .object({
+    id: z.string(),
+    userId: z.string(),
+    name: z.string().nullable(),
+    email: z.string().nullable(),
+    createdAt: z.string().nullable(),
+  })
+  .openapi("TeamMember");
+
+export const teamMembersRoute = createRoute({
+  method: "get",
+  path: "/api/teams/{teamId}/members",
+  summary: "List the members of a team (org owners/admins and team members)",
+  request: {
+    params: z.object({
+      teamId: z.string().openapi({ param: { name: "teamId", in: "path" } }),
+    }),
+  },
+  security: cookieSecurity,
+  responses: {
+    200: {
+      description: "Team members",
+      content: { "application/json": { schema: z.array(TeamMemberSchema) } },
+    },
+    ...authErrorResponses,
+    ...notFoundResponse,
+  },
+});
+
 export const linkListRoute = createRoute({
   method: "get",
   path: "/api/teams/{teamId}/links",

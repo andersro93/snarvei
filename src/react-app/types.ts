@@ -44,6 +44,14 @@ export type Invitation = {
   teamId?: string | null;
 };
 
+export type TeamMember = {
+  id: string;
+  userId: string;
+  name: string | null;
+  email: string | null;
+  createdAt: string | null;
+};
+
 export type InvitationRole = "member" | "admin" | "owner";
 
 export type HistoryItem = {

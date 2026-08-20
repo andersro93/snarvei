@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  FormHelperText,
   IconButton,
   InputLabel,
   MenuItem,
@@ -259,23 +260,31 @@ function CreateLinkDialogForm({
 export function InviteMemberDialog({
   open,
   submitting,
+  teams,
   onClose,
   onSubmit,
 }: {
   open: boolean;
   submitting: boolean;
+  teams: Team[];
   onClose: () => void;
-  onSubmit: (values: { email: string; role: InvitationRole }) => Promise<boolean>;
+  onSubmit: (values: { email: string; role: InvitationRole; teamId?: string | null }) => Promise<boolean>;
 }) {
   const [email, setEmail] = useState("member@example.com");
   const [role, setRole] = useState<InvitationRole>("member");
+  const [teamId, setTeamId] = useState<string>("");
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Invite member</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
-          <TextField label="Invite email" value={email} onChange={(event) => setEmail(event.target.value)} />
+          <TextField
+            label="Invite email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            slotProps={{ htmlInput: { "data-testid": "invite-email-input" } }}
+          />
           <FormControl>
             <InputLabel id="invite-role-label">Role</InputLabel>
             <Select labelId="invite-role-label" label="Role" value={role} onChange={(event) => setRole(event.target.value as InvitationRole)}>
@@ -284,6 +293,24 @@ export function InviteMemberDialog({
               <MenuItem value="owner">owner</MenuItem>
             </Select>
           </FormControl>
+          <FormControl>
+            <InputLabel id="invite-team-label">Team (optional)</InputLabel>
+            <Select
+              labelId="invite-team-label"
+              label="Team (optional)"
+              value={teamId}
+              onChange={(event) => setTeamId(event.target.value)}
+              inputProps={{ "data-testid": "invite-team-select" }}
+            >
+              <MenuItem value="">No team yet</MenuItem>
+              {teams.map((team) => (
+                <MenuItem key={team.id} value={team.id} data-testid={`invite-team-option-${team.name}`}>
+                  {team.name}
+                </MenuItem>
+              ))}
+            </Select>
+            <FormHelperText>Members only see links of teams they belong to; owners and admins see everything.</FormHelperText>
+          </FormControl>
         </Stack>
       </DialogContent>
       <DialogActions>
@@ -291,8 +318,9 @@ export function InviteMemberDialog({
         <Button
           variant="contained"
           disabled={submitting}
+          data-testid="send-invitation-button"
           onClick={() => {
-            void onSubmit({ email, role }).then((created) => {
+            void onSubmit({ email, role, teamId: teamId || null }).then((created) => {
               if (created) {
                 onClose();
               }

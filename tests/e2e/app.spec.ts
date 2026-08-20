@@ -69,10 +69,10 @@ test("user can create and manage a link end to end", async ({ page }) => {
   await expect(page).toHaveURL(new RegExp(`/app/${organizationSlug}/dashboard$`));
 
   await page.getByRole("link", { name: "Organization" }).click();
-  await page.getByRole("button", { name: "Create team" }).click();
+  await clickTestIdButton(page, "open-create-team-button");
   await page.getByTestId("team-name-input").fill(teamName);
   await clickTestIdButton(page, "create-team-button");
-  await expect(page.getByText(teamName)).toBeVisible();
+  await expect(page.getByTestId(`manage-team-${teamName}`)).toBeVisible();
   await expect(page.getByText(`Manage members, invitations, and teams for ${organizationName}.`)).toBeVisible();
 
   await page.getByRole("link", { name: "Links" }).click();
@@ -197,4 +197,110 @@ test("user can open settings and update their profile name", async ({ page }) =>
   await page.getByRole("button", { name: "Save profile" }).click();
   await expect(page.getByText("Profile updated.")).toBeVisible();
   await expect(page.getByText(updatedName).first()).toBeVisible();
+});
+
+test("invited member accepts the invitation and only sees their team's links", async ({ browser, page }) => {
+  const id = unique();
+  const password = "Password123!";
+  const ownerEmail = `owner-inv-${id}@example.com`;
+  const inviteeEmail = `invitee-${id}@example.com`;
+  const organizationName = `Invite Org ${id}`;
+  const organizationSlug = `invite-org-${id}`;
+
+  // Owner: sign up, create organization + two teams, one link per team.
+  await page.goto("/");
+  await page.getByTestId("auth-name-input").fill(`Owner ${id}`);
+  await page.getByTestId("auth-email-input").fill(ownerEmail);
+  await page.getByTestId("auth-password-input").fill(password);
+  await clickTestIdButton(page, "create-account-button");
+  await expect(page.getByText("Choose your organization")).toBeVisible();
+  await page.getByRole("button", { name: "Create organization" }).click();
+  await page.getByTestId("organization-name-input").fill(organizationName);
+  await page.getByTestId("organization-slug-input").fill(organizationSlug);
+  await clickTestIdButton(page, "create-organization-button");
+  await expect(page).toHaveURL(new RegExp(`/app/${organizationSlug}/dashboard$`));
+
+  await page.getByRole("link", { name: "Organization" }).click();
+  for (const teamName of ["Growth", "Ops"]) {
+    await clickTestIdButton(page, "open-create-team-button");
+    await page.getByTestId("team-name-input").fill(teamName);
+    await clickTestIdButton(page, "create-team-button");
+    await expect(page.getByTestId(`manage-team-${teamName}`)).toBeVisible();
+    await expect(page.getByTestId("team-name-input")).toHaveCount(0);
+  }
+
+  // Invite the member into the Growth team via the UI.
+  await clickTestIdButton(page, "open-invite-member-button");
+  await page.getByTestId("invite-email-input").fill(inviteeEmail);
+  await page.getByRole("combobox", { name: "Team (optional)" }).click();
+  await page.getByRole("option", { name: "Growth" }).click();
+  await clickTestIdButton(page, "send-invitation-button");
+  await expect(page.getByText(`Invitation sent to ${inviteeEmail}.`)).toBeVisible();
+  await expect(page.getByTestId(`invitation-${inviteeEmail}`)).toContainText("team Growth");
+
+  // Create one link per team and read the invitation id through the API as the owner
+  // (same session cookie) to keep the UI steps focused on the invitation flow.
+  const invitationId = await page.evaluate(async () => {
+    const me = (await (await fetch("/api/me", { credentials: "include" })).json()) as { session: { activeOrganizationId: string } };
+    const organizationId = me.session.activeOrganizationId;
+    const response = await fetch(`/api/auth/organization/list-invitations?organizationId=${organizationId}`, { credentials: "include" });
+    const invitations = (await response.json()) as Array<{ id: string; status: string }>;
+    return invitations.find((invitation) => invitation.status === "pending")?.id ?? "";
+  });
+  expect(invitationId).toBeTruthy();
+  const { growthLink, opsLink } = await page.evaluate(async () => {
+    const me = (await (await fetch("/api/me", { credentials: "include" })).json()) as { session: { activeOrganizationId: string } };
+    const organizationId = me.session.activeOrganizationId;
+    const teams = (await (await fetch(`/api/auth/organization/list-teams?organizationId=${organizationId}`, { credentials: "include" })).json()) as Array<{ id: string; name: string }>;
+    const create = async (teamId: string, title: string) =>
+      (await (
+        await fetch("/api/links", {
+          method: "POST",
+          credentials: "include",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ teamId, targetUrl: `https://example.com/${title}`, title }),
+        })
+      ).json()) as { id: string; title: string };
+    const growth = teams.find((team) => team.name === "Growth")!;
+    const ops = teams.find((team) => team.name === "Ops")!;
+    return { growthLink: await create(growth.id, "Growth link"), opsLink: await create(ops.id, "Ops link") };
+  });
+  expect(growthLink.id).toBeTruthy();
+  expect(opsLink.id).toBeTruthy();
+
+  // Invitee: open the invitation link signed out -> lands on the landing page with ?next=, signs up, comes back, accepts.
+  const inviteeContext = await browser.newContext({ extraHTTPHeaders: { "cf-connecting-ip": uniqueClientIp() } });
+  const inviteePage = await inviteeContext.newPage();
+  await inviteePage.goto(`/app/invitations/${invitationId}`);
+  await expect(inviteePage).toHaveURL(/\/\?next=%2Fapp%2Finvitations%2F/);
+  await inviteePage.getByTestId("auth-name-input").fill(`Invitee ${id}`);
+  await inviteePage.getByTestId("auth-email-input").fill(inviteeEmail);
+  await inviteePage.getByTestId("auth-password-input").fill(password);
+  await clickTestIdButton(inviteePage, "create-account-button");
+
+  await expect(inviteePage).toHaveURL(new RegExp(`/app/invitations/${invitationId}$`));
+  await expect(inviteePage.getByTestId("invitation-organization")).toHaveText(organizationName);
+  await clickTestIdButton(inviteePage, "invitation-accept-button");
+  await expect(inviteePage).toHaveURL(new RegExp(`/app/${organizationSlug}/dashboard$`));
+
+  // The member sees only the Growth team's link.
+  await inviteePage.getByRole("link", { name: "Links" }).click();
+  await expect(inviteePage.getByText("Growth link").first()).toBeVisible();
+  await expect(inviteePage.getByText("Ops link")).toHaveCount(0);
+  const forbidden = await inviteePage.request.get(`/api/links/${opsLink.id}`);
+  expect(forbidden.status()).toBe(403);
+
+  // Owner adds the member to Ops through the team dialog; the member now sees both links.
+  await page.getByTestId("manage-team-Ops").click();
+  await page.getByRole("combobox", { name: "Add organization member" }).click();
+  await page.getByTestId(`add-team-member-option-${inviteeEmail}`).click();
+  await clickTestIdButton(page, "add-team-member-button");
+  await expect(page.getByTestId("team-members-list")).toContainText(inviteeEmail);
+
+  await inviteePage.reload();
+  await expect(inviteePage.getByText("Ops link").first()).toBeVisible();
+  const allowed = await inviteePage.request.get(`/api/links/${opsLink.id}`);
+  expect(allowed.status()).toBe(200);
+
+  await inviteeContext.close();
 });
