@@ -4,14 +4,7 @@ import type { AppBindings, AppVariables } from "../lib/types";
 
 export const sessionMiddleware = createMiddleware<{ Bindings: AppBindings; Variables: AppVariables }>(
   async (c, next) => {
-    if (!c.env.DB || !c.env.AUTH_SECRET) {
-      c.set("session", null);
-      c.set("user", null);
-      c.set("activeOrganizationId", null);
-      await next();
-      return;
-    }
-
+    // Environment is validated by envMiddleware before any route runs.
     const auth = createAuth(c.env);
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     const authSession = session?.session as (typeof session extends null ? never : {

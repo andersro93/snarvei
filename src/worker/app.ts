@@ -4,6 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import { clickEvents, links } from "./db/schema";
 import { createAuth } from "./lib/auth";
 import { hashIp } from "./lib/crypto";
+import { envMiddleware, ipHashPepper } from "./lib/env";
 import { getDb } from "./lib/db";
 import { renderScalarPage } from "./lib/scalar";
 import type { AppBindings, AppVariables } from "./lib/types";
@@ -49,6 +50,7 @@ const updateProfileImage = (auth: ReturnType<typeof createAuth>, headers: Header
 export const createApp = () => {
   const app = new OpenAPIHono<{ Bindings: AppBindings; Variables: AppVariables }>();
 
+  app.use("*", envMiddleware);
   app.use("/api/me", sessionMiddleware);
   app.use("/api/me/*", sessionMiddleware);
   app.use("/api/organizations/*", sessionMiddleware);
@@ -168,7 +170,7 @@ export const createApp = () => {
     c.executionCtx.waitUntil(
       (async () => {
         const ip = c.req.raw.headers.get("CF-Connecting-IP");
-        const ipHash = await hashIp(ip, c.env.AUTH_SECRET);
+        const ipHash = await hashIp(ip, ipHashPepper(c.env));
         const cf = c.req.raw.cf as IncomingRequestCfProperties | undefined;
         await db.insert(clickEvents).values({
           id: crypto.randomUUID(),
