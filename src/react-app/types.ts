@@ -142,3 +142,16 @@ export const readCollection = <T,>(value: unknown, keys: string[]): T[] => {
 };
 
 export const roleLabel = (role: string | string[]) => (Array.isArray(role) ? role.join(", ") : role);
+
+/** Reads the API's JSON error shape ({ error }) and falls back to a generic message. */
+export const readErrorMessage = async (response: Response, fallback: string) => {
+  try {
+    const body = (await response.clone().json()) as { error?: unknown };
+    if (typeof body?.error === "string" && body.error.trim()) {
+      return body.error;
+    }
+  } catch {
+    // non-JSON body
+  }
+  return fallback;
+};

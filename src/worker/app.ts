@@ -1,14 +1,16 @@
-import { OpenAPIHono } from "@hono/zod-openapi";
+import { OpenAPIHono, z } from "@hono/zod-openapi";
 import { and, eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { clickEvents, links } from "./db/schema";
 import { createAuth } from "./lib/auth";
 import { hashIp } from "./lib/crypto";
 import { envMiddleware, ipHashPepper } from "./lib/env";
+import { errorJson, notFound, onError, validationHook } from "./lib/errors";
 import { rateLimitMiddleware } from "./lib/rate-limit";
 import { getDb } from "./lib/db";
 import { renderScalarPage } from "./lib/scalar";
 import type { AppBindings, AppVariables } from "./lib/types";
+import { ErrorSchema, authErrorResponses, cookieSecurity } from "./openapi/schemas";
 import { requireUser } from "./middleware/guards";
 import { sessionMiddleware } from "./middleware/session";
 import { registerLinkRoutes } from "./routes/links";
@@ -48,8 +50,88 @@ const updateProfileImage = (auth: ReturnType<typeof createAuth>, headers: Header
     headers,
   } as never);
 
+/**
+ * Routes implemented with plain Hono handlers (no request validation needed)
+ * still belong in the OpenAPI document. Their shapes are declared here.
+ */
+const registerPlainRoutesInOpenApi = (app: OpenAPIHono<{ Bindings: AppBindings; Variables: AppVariables }>) => {
+  const registry = app.openAPIRegistry;
+  const jsonError = (description: string) => ({ description, content: { "application/json": { schema: ErrorSchema } } });
+
+  registry.registerPath({
+    method: "get",
+    path: "/api/health",
+    summary: "Health check",
+    responses: {
+      200: { description: "Service is up", content: { "application/json": { schema: z.object({ ok: z.literal(true), service: z.string() }) } } },
+      500: jsonError("Server misconfigured"),
+    },
+  });
+
+  registry.registerPath({
+    method: "get",
+    path: "/api/me",
+    summary: "Current session and user",
+    security: cookieSecurity,
+    responses: {
+      200: {
+        description: "Authenticated",
+        content: {
+          "application/json": {
+            schema: z.object({
+              authenticated: z.literal(true),
+              user: z.object({ id: z.string(), email: z.string(), name: z.string(), image: z.string().nullable().optional() }).passthrough(),
+              session: z.object({ id: z.string(), userId: z.string(), activeOrganizationId: z.string().nullable().optional() }).passthrough(),
+            }),
+          },
+        },
+      },
+      401: authErrorResponses[401],
+    },
+  });
+
+  registry.registerPath({
+    method: "post",
+    path: "/api/me/profile-image",
+    summary: "Upload a profile image (multipart/form-data, field `file`; JPEG/PNG/WebP/GIF, max 5MB)",
+    security: cookieSecurity,
+    request: { body: { content: { "multipart/form-data": { schema: z.object({ file: z.string().openapi({ format: "binary" }) }) } } } },
+    responses: {
+      200: { description: "Uploaded", content: { "application/json": { schema: z.object({ imageUrl: z.string() }) } } },
+      400: jsonError("Missing, unsupported or oversized file"),
+      401: authErrorResponses[401],
+    },
+  });
+
+  registry.registerPath({
+    method: "delete",
+    path: "/api/me/profile-image",
+    summary: "Remove the profile image",
+    security: cookieSecurity,
+    responses: {
+      200: { description: "Removed", content: { "application/json": { schema: z.object({ imageUrl: z.null() }) } } },
+      401: authErrorResponses[401],
+    },
+  });
+
+  registry.registerPath({
+    method: "get",
+    path: "/l/{slug}",
+    summary: "Public redirect for a short link (records a click asynchronously)",
+    request: { params: z.object({ slug: z.string().openapi({ param: { name: "slug", in: "path" } }) }) },
+    responses: {
+      302: { description: "Redirect (also 301/307 depending on the link's configured status). Cache-Control: no-store" },
+      404: { description: "Unknown or inactive slug" },
+      429: jsonError("Rate limited (Retry-After header set)"),
+    },
+  });
+};
+
 export const createApp = () => {
-  const app = new OpenAPIHono<{ Bindings: AppBindings; Variables: AppVariables }>();
+  const app = new OpenAPIHono<{ Bindings: AppBindings; Variables: AppVariables }>({ defaultHook: validationHook });
+
+  app.onError(onError);
+  app.notFound(notFound);
 
   app.use("*", envMiddleware);
   app.use("/l/*", rateLimitMiddleware("redirect"));
@@ -62,6 +144,14 @@ export const createApp = () => {
   app.use("/api/links/*", sessionMiddleware);
 
   app.on(["GET", "POST"], "/api/auth/*", async (c) => createAuth(c.env).handler(c.req.raw));
+
+  app.openAPIRegistry.registerComponent("securitySchemes", "cookieAuth", {
+    type: "apiKey",
+    in: "cookie",
+    name: "better-auth.session_token",
+    description: "Better Auth session cookie set by /api/auth/* sign-in endpoints.",
+  });
+  registerPlainRoutesInOpenApi(app);
 
   app.doc("/openapi.json", {
     openapi: "3.0.0",
@@ -78,7 +168,7 @@ export const createApp = () => {
     const user = c.get("user");
     const session = c.get("session");
     if (!user || !session) {
-      return c.json({ authenticated: false }, 401);
+      return errorJson(c, 401);
     }
 
     return c.json({

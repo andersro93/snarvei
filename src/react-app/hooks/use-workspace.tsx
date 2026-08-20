@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { authClient } from "../lib/auth-client";
 import type { AnalyticsSummary, AppMessage, HistoryItem, Invitation, InvitationRole, Link, Member, OrganizationSummary, SelectedLinkFormValues, SessionData, Team } from "../types";
-import { initialAnalytics, readCollection } from "../types";
+import { initialAnalytics, readCollection, readErrorMessage } from "../types";
 import { WorkspaceContext, type WorkspaceContextValue } from "./workspace-context";
 
 const refreshSession = async () => {
@@ -410,7 +410,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (!response.ok) {
-      setMessage({ severity: "error", text: "Unable to create link." });
+      setMessage({ severity: "error", text: await readErrorMessage(response, "Unable to create link.") });
       setSubmitting(null);
       return null;
     }
@@ -441,7 +441,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (!response.ok) {
-      setMessage({ severity: "error", text: "Unable to update the selected link." });
+      setMessage({ severity: "error", text: await readErrorMessage(response, "Unable to update the selected link.") });
       setSubmitting(null);
       return null;
     }
@@ -463,7 +463,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (!response.ok) {
-      setMessage({ severity: "error", text: "Unable to delete the selected link." });
+      setMessage({ severity: "error", text: await readErrorMessage(response, "Unable to delete the selected link.") });
       setSubmitting(null);
       return false;
     }
