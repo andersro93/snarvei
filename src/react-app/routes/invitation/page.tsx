@@ -46,7 +46,7 @@ export function InvitationPage() {
     await refreshOrganizations({ silent: true });
     await switchOrganization(invitation.organizationId);
     setMessage({ severity: "success", text: `You joined ${invitation.organizationName}.` });
-    navigate(buildOrganizationPath({ id: invitation.organizationId, slug: invitation.organizationSlug }));
+    void navigate(buildOrganizationPath({ id: invitation.organizationId, slug: invitation.organizationSlug }));
   };
 
   const decline = async (invitation: InvitationDetails) => {
@@ -58,7 +58,7 @@ export function InvitationPage() {
       return;
     }
     setMessage({ severity: "info", text: "Invitation declined." });
-    navigate("/app/select-organization");
+    void navigate("/app/select-organization");
   };
 
   const emailMismatch = state.status === "ready" && session?.user.email?.toLowerCase() !== state.invitation.email.toLowerCase();

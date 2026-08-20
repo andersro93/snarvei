@@ -107,7 +107,7 @@ export function LandingPage() {
                   void signIn({ email, password }).then((result) => {
                     setTwoFactorRequired(Boolean(result.requiresTwoFactor));
                     if (result.ok) {
-                      navigate(afterAuthPath);
+                      void navigate(afterAuthPath);
                     }
                   });
                 }}
@@ -168,7 +168,7 @@ export function LandingPage() {
                     }
                     await refreshSessionState();
                     await refreshOrganizations({ silent: true });
-                    navigate(afterAuthPath);
+                    void navigate(afterAuthPath);
                   })
                 }
               >
@@ -206,7 +206,7 @@ export function LandingPage() {
                           setTwoFactorCode("");
                           await refreshSessionState();
                           await refreshOrganizations({ silent: true });
-                          navigate(afterAuthPath);
+                          void navigate(afterAuthPath);
                         })
                     }
                   >

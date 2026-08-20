@@ -42,7 +42,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const appOrigin = typeof window === "undefined" ? "http://localhost:8787" : window.location.origin;
   const organizations = useMemo(() => (organizationsQuery.data ?? []) as OrganizationSummary[], [organizationsQuery.data]);
-  const activeOrganizationFromClient = activeOrganizationQuery.data as OrganizationSummary | null | undefined;
+  const activeOrganizationFromClient = activeOrganizationQuery.data;
 
   const activeOrganizationId = useMemo(() => {
     if (!session) {

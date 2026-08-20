@@ -101,7 +101,7 @@ export function LinkDetailsPage() {
         onDelete={async () => {
           const deleted = await deleteLink(link.id);
           if (deleted) {
-            navigate(buildLinksPath(activeOrganization));
+            void navigate(buildLinksPath(activeOrganization));
           }
           return deleted;
         }}

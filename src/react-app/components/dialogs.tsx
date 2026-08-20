@@ -226,7 +226,7 @@ function CreateLinkDialogForm({
               labelId="create-link-status-label"
               label="Redirect status"
               value={redirectStatus}
-              onChange={(event) => setRedirectStatus(event.target.value as 301 | 302 | 307)}
+              onChange={(event) => setRedirectStatus(event.target.value)}
             >
               <MenuItem value={302}>302 — temporary (default)</MenuItem>
               <MenuItem value={307}>307 — temporary, preserves request method</MenuItem>
@@ -286,7 +286,7 @@ export function InviteMemberDialog({
           />
           <FormControl>
             <InputLabel id="invite-role-label">Role</InputLabel>
-            <Select labelId="invite-role-label" label="Role" value={role} onChange={(event) => setRole(event.target.value as InvitationRole)}>
+            <Select labelId="invite-role-label" label="Role" value={role} onChange={(event) => setRole(event.target.value)}>
               <MenuItem value="member">member</MenuItem>
               <MenuItem value="admin">admin</MenuItem>
               <MenuItem value="owner">owner</MenuItem>
@@ -403,7 +403,7 @@ function EditLinkDialogForm({
               labelId="selected-link-status-label"
               label="Redirect status"
               value={redirectStatus}
-              onChange={(event) => setRedirectStatus(event.target.value as 301 | 302 | 307)}
+              onChange={(event) => setRedirectStatus(event.target.value)}
             >
               <MenuItem value={302}>302 — temporary (default)</MenuItem>
               <MenuItem value={307}>307 — temporary, preserves request method</MenuItem>

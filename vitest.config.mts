@@ -29,7 +29,7 @@ export default defineConfig(async () => {
       // Ignore exactly those (Better Auth APIError with a 4xx statusCode and an
       // error code) so the suite still fails on any other unhandled rejection.
       // Tracked in https://github.com/andersro93/snarvei/issues/47.
-      onUnhandledError(error) {
+      onUnhandledError(error: unknown) {
         const apiError = error as { statusCode?: number; body?: { code?: string } };
         if (typeof apiError.statusCode === "number" && apiError.statusCode < 500 && typeof apiError.body?.code === "string") {
           return false;

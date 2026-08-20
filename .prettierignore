@@ -1,0 +1,8 @@
+dist/
+node_modules/
+.wrangler/
+worker-configuration.d.ts
+src/worker/db/migrations/
+pnpm-lock.yaml
+playwright-report/
+test-results/

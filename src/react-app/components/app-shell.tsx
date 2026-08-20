@@ -139,7 +139,7 @@ export function AppShell() {
                 if (typeof organizationId === "string" && organizationId) {
                   void switchOrganization(organizationId).then(() => {
                     const nextOrganization = organizations.find((organization) => organization.id === organizationId);
-                    navigate(buildOrganizationPath(nextOrganization));
+                    void navigate(buildOrganizationPath(nextOrganization));
                   });
                 }
               }}

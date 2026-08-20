@@ -77,7 +77,7 @@ export function OrganizationSelectionPage() {
         onSubmit={async (values) => {
           const createdOrganizationId = await createOrganization(values);
           if (createdOrganizationId) {
-            navigate(buildOrganizationPath({ id: createdOrganizationId, slug: values.slug }));
+            void navigate(buildOrganizationPath({ id: createdOrganizationId, slug: values.slug }));
             return true;
           }
           return false;

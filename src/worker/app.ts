@@ -53,7 +53,7 @@ const updateProfileImage = (auth: ReturnType<typeof createAuth>, headers: Header
       image,
     },
     headers,
-  } as never);
+  });
 
 /**
  * Routes implemented with plain Hono handlers (no request validation needed)

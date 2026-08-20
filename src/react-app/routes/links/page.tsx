@@ -52,7 +52,7 @@ export function LinksPage() {
   );
 
   const handleRowClick = (params: GridRowParams) => {
-    navigate(buildLinksPath(activeOrganization, String(params.id)));
+    void navigate(buildLinksPath(activeOrganization, String(params.id)));
   };
 
   return (
@@ -101,7 +101,7 @@ export function LinksPage() {
         onSubmit={async (values) => {
           const createdLink = await createLink(values);
           if (createdLink) {
-            navigate(buildLinksPath(activeOrganization, createdLink.id));
+            void navigate(buildLinksPath(activeOrganization, createdLink.id));
             return true;
           }
           return false;
