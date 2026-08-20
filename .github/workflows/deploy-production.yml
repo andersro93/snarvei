@@ -8,6 +8,10 @@ on:
         required: true
         default: main
 
+permissions:
+  contents: read
+  checks: read
+
 concurrency:
   group: deploy-production
   cancel-in-progress: false
@@ -24,6 +28,22 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref }}
+
+      # Refuse to deploy a commit that the CI workflow has not validated.
+      - name: Verify CI passed for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse HEAD)"
+          echo "Resolved ${{ inputs.ref }} -> $sha"
+          successes="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${sha}/check-runs?check_name=Validate&per_page=100" \
+            --jq '[.check_runs[] | select(.conclusion == "success")] | length')"
+          if [ "$successes" -lt 1 ]; then
+            echo "::error::No successful 'Validate' check run found for $sha. Run CI on this commit first."
+            exit 1
+          fi
+          echo "Found $successes successful Validate run(s) for $sha"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -44,6 +64,12 @@ jobs:
 
       - name: Build app
         run: pnpm build
+
+      - name: List pending Production D1 migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler d1 migrations list DB --remote
 
       - name: Apply Production D1 migrations
         env:

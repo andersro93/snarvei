@@ -18,6 +18,6 @@ Recommended Cloudflare Worker secret configured in the target Worker environment
 Notes:
 
 1. `wrangler.jsonc` is now the source of truth for production and `env.dev` runtime configuration.
-2. Replace the placeholder D1 database ids and app URLs in `wrangler.jsonc` before the first deployment.
+2. `deploy-dev.yml` runs on `workflow_run` of `CI` for `main` and only proceeds when that run succeeded. `deploy-production.yml` verifies a successful `Validate` check run exists for the chosen ref before deploying.
 3. `AUTH_SECRET` is not created by the workflows. Add it once for production with `wrangler secret put AUTH_SECRET` and once for dev with `wrangler secret put AUTH_SECRET --env dev`.
 4. The `Dev` and `Production` GitHub environments are used for deployment visibility, secret scoping, and optional approval rules.
