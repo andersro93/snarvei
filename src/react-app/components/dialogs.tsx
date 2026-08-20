@@ -33,8 +33,8 @@ export function CreateOrganizationDialog({
   onClose: () => void;
   onSubmit: (values: { name: string; slug: string }) => Promise<boolean>;
 }) {
-  const [name, setName] = useState("Snarvei Labs");
-  const [slug, setSlug] = useState("snarvei-labs");
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -42,13 +42,13 @@ export function CreateOrganizationDialog({
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
           <TextField
-            label="Organization name"
+            label="Organization name" placeholder="Acme Inc"
             value={name}
             onChange={(event) => setName(event.target.value)}
             slotProps={{ htmlInput: { "data-testid": "organization-name-input" } }}
           />
           <TextField
-            label="Organization slug"
+            label="Organization slug" placeholder="acme"
             value={slug}
             onChange={(event) => setSlug(event.target.value)}
             slotProps={{ htmlInput: { "data-testid": "organization-slug-input" } }}
@@ -59,7 +59,7 @@ export function CreateOrganizationDialog({
         <Button onClick={onClose}>Cancel</Button>
         <Button
           variant="contained"
-          disabled={submitting}
+          disabled={submitting || !name.trim() || !slug.trim()}
           data-testid="create-organization-button"
           onClick={() => {
             void onSubmit({ name, slug }).then((created) => {
@@ -87,7 +87,7 @@ export function CreateTeamDialog({
   onClose: () => void;
   onSubmit: (values: { name: string }) => Promise<boolean>;
 }) {
-  const [name, setName] = useState("Growth");
+  const [name, setName] = useState("");
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -95,7 +95,7 @@ export function CreateTeamDialog({
       <DialogContent>
         <TextField
           sx={{ mt: 1 }}
-          label="Team name"
+          label="Team name" placeholder="Marketing"
           value={name}
           onChange={(event) => setName(event.target.value)}
           slotProps={{ htmlInput: { "data-testid": "team-name-input" } }}
@@ -106,7 +106,7 @@ export function CreateTeamDialog({
         <Button onClick={onClose}>Cancel</Button>
         <Button
           variant="contained"
-          disabled={submitting}
+          disabled={submitting || !name.trim()}
           data-testid="create-team-button"
           onClick={() => {
             void onSubmit({ name }).then((created) => {
@@ -181,9 +181,9 @@ function CreateLinkDialogForm({
   }) => Promise<boolean>;
 }) {
   const [teamId, setTeamId] = useState(defaultTeamId);
-  const [targetUrl, setTargetUrl] = useState("https://example.com");
-  const [title, setTitle] = useState("Campaign landing page");
-  const [description, setDescription] = useState("Primary CTA link for the launch campaign");
+  const [targetUrl, setTargetUrl] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [redirectStatus, setRedirectStatus] = useState<301 | 302 | 307>(302);
 
   return (
@@ -202,7 +202,7 @@ function CreateLinkDialogForm({
             </Select>
           </FormControl>
           <TextField
-            label="Target URL"
+            label="Target URL" placeholder="https://example.com/landing-page"
             value={targetUrl}
             onChange={(event) => setTargetUrl(event.target.value)}
             slotProps={{ htmlInput: { "data-testid": "create-link-target-input" } }}
@@ -240,7 +240,7 @@ function CreateLinkDialogForm({
         <Button onClick={onClose}>Cancel</Button>
         <Button
           variant="contained"
-          disabled={!teamId || submitting}
+          disabled={!teamId || !targetUrl.trim() || submitting}
           data-testid="create-link-button"
           onClick={() => {
             void onSubmit({ teamId, targetUrl, redirectStatus, title, description }).then((created) => {
@@ -270,7 +270,7 @@ export function InviteMemberDialog({
   onClose: () => void;
   onSubmit: (values: { email: string; role: InvitationRole; teamId?: string | null }) => Promise<boolean>;
 }) {
-  const [email, setEmail] = useState("member@example.com");
+  const [email, setEmail] = useState("");
   const [role, setRole] = useState<InvitationRole>("member");
   const [teamId, setTeamId] = useState<string>("");
 
@@ -280,7 +280,7 @@ export function InviteMemberDialog({
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
           <TextField
-            label="Invite email"
+            label="Invite email" placeholder="colleague@example.com"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             slotProps={{ htmlInput: { "data-testid": "invite-email-input" } }}
@@ -317,7 +317,7 @@ export function InviteMemberDialog({
         <Button onClick={onClose}>Cancel</Button>
         <Button
           variant="contained"
-          disabled={submitting}
+          disabled={submitting || !email.trim()}
           data-testid="send-invitation-button"
           onClick={() => {
             void onSubmit({ email, role, teamId: teamId || null }).then((created) => {
