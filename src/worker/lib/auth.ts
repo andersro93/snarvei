@@ -4,7 +4,20 @@ import { passkey } from "@better-auth/passkey";
 import { organization, twoFactor } from "better-auth/plugins";
 import { createDb } from "../db/client";
 import { schema } from "../db/schema";
+import {
+  changeEmailVerificationEmail,
+  createEmailSender,
+  type EmailSender,
+  invitationEmail,
+  passwordResetEmail,
+  verificationEmail,
+} from "./email";
 import type { AppBindings } from "./types";
+
+export type AuthDeps = {
+  /** Transactional email transport; defaults to createEmailSender(env). */
+  sendEmail?: EmailSender;
+};
 
 type AuthSessionResult = {
   session: {
@@ -38,7 +51,6 @@ type AuthInstance = {
 const createInviteLink = (baseUrl: string, invitationId: string) =>
   `${baseUrl.replace(/\/$/, "")}/app?invitation=${encodeURIComponent(invitationId)}`;
 
-const createSettingsLink = (baseUrl: string) => `${baseUrl.replace(/\/$/, "")}/app/settings`;
 
 const createTrustedOrigins = (baseUrl: string) => {
   const baseOrigin = new URL(baseUrl).origin;
@@ -67,11 +79,13 @@ const createTrustedOrigins = (baseUrl: string) => {
  * `createAuth` so tests can introspect the configuration (plugins, schema
  * expectations) without instantiating the auth runtime.
  */
-export const createAuthOptions = (env: AppBindings): BetterAuthOptions => {
+export const createAuthOptions = (env: AppBindings, deps: AuthDeps = {}): BetterAuthOptions => {
   const db = createDb(env.DB);
   const baseUrl = env.APP_URL || "http://localhost:8787";
   const baseOrigin = new URL(baseUrl).origin;
   const relyingPartyId = new URL(baseUrl).hostname;
+  const appName = env.APP_NAME || "Snarvei";
+  const sendEmail = deps.sendEmail ?? createEmailSender(env);
 
   return {
     secret: env.AUTH_SECRET,
@@ -109,22 +123,24 @@ export const createAuthOptions = (env: AppBindings): BetterAuthOptions => {
       enabled: true,
       requireEmailVerification: false,
       revokeSessionsOnPasswordReset: true,
+      async sendResetPassword(data) {
+        await sendEmail({ to: data.user.email, ...passwordResetEmail({ appName, url: data.url }) });
+      },
     },
     user: {
       changeEmail: {
         enabled: true,
+        async sendChangeEmailConfirmation(data) {
+          await sendEmail({
+            to: data.newEmail,
+            ...changeEmailVerificationEmail({ appName, newEmail: data.newEmail, url: data.url }),
+          });
+        },
       },
     },
     emailVerification: {
       async sendVerificationEmail(data) {
-        console.log(
-          JSON.stringify({
-            type: "email-verification",
-            email: data.user.email,
-            verificationUrl: data.url,
-            callbackUrl: createSettingsLink(baseUrl),
-          }),
-        );
+        await sendEmail({ to: data.user.email, ...verificationEmail({ appName, url: data.url }) });
       },
     },
     plugins: [
@@ -150,19 +166,20 @@ export const createAuthOptions = (env: AppBindings): BetterAuthOptions => {
           },
         },
         async sendInvitationEmail(data) {
-          console.log(
-            JSON.stringify({
-              type: "organization-invitation",
-              email: data.email,
+          await sendEmail({
+            to: data.email,
+            ...invitationEmail({
+              appName,
               organizationName: data.organization.name,
-              invitationId: data.id,
+              inviterName: data.inviter?.user?.name ?? null,
               inviteLink: createInviteLink(baseUrl, data.id),
             }),
-          );
+          });
         },
       }),
     ],
   };
 };
 
-export const createAuth = (env: AppBindings): AuthInstance => betterAuth(createAuthOptions(env)) as AuthInstance;
+export const createAuth = (env: AppBindings, deps: AuthDeps = {}): AuthInstance =>
+  betterAuth(createAuthOptions(env, deps)) as AuthInstance;

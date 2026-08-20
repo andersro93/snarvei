@@ -11,6 +11,11 @@ export type AppBindings = {
   APP_URL?: string;
   APP_NAME?: string;
   NODE_ENV?: string;
+  /** Transactional email (Resend). Both required to actually send; otherwise messages are dropped with a redacted log line. */
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
+  /** Local development only: log full email bodies (links!) to the console. */
+  EMAIL_DEV_LOG?: string;
 };
 
 export type AppVariables = {

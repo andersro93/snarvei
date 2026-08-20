@@ -272,6 +272,13 @@ Production auth also requires the Worker secret:
 
 1. `AUTH_SECRET`
 
+Transactional email (organization invitations, email verification, password reset, change-email confirmation) is sent through Resend and needs:
+
+1. `RESEND_API_KEY` (Worker secret: `wrangler secret put RESEND_API_KEY`, and `--env dev` for dev)
+2. `EMAIL_FROM` (var or secret, e.g. `Snarvei <no-reply@your-domain>`)
+
+Without them, messages are dropped and a redacted `email.not_configured` warning is logged — never the link itself. For local development set `EMAIL_DEV_LOG=true` in `.dev.vars` to log full messages instead.
+
 See `.github/workflows/README.md` for the exact setup expected by the workflow.
 
 ## Future Directions

@@ -24,14 +24,14 @@ export default defineConfig(async () => {
       include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts"],
       setupFiles: ["./tests/integration/support/apply-migrations.ts"],
       pool: "@cloudflare/vitest-pool-workers",
-      // Better Auth 1.7 leaks a dangling rejected APIError for every failed
-      // email sign-in (the request itself is answered correctly with 401).
-      // Ignore exactly that error so the suite still fails on any other
-      // unhandled rejection. Tracked in
-      // https://github.com/andersro93/snarvei/issues/47 — remove once fixed.
+      // Better Auth 1.7 leaves a dangling rejected APIError behind whenever an
+      // auth endpoint answers with a 4xx (the HTTP response itself is correct).
+      // Ignore exactly those (Better Auth APIError with a 4xx statusCode and an
+      // error code) so the suite still fails on any other unhandled rejection.
+      // Tracked in https://github.com/andersro93/snarvei/issues/47.
       onUnhandledError(error) {
-        const body = (error as { body?: { code?: string } }).body;
-        if (body?.code === "INVALID_EMAIL_OR_PASSWORD") {
+        const apiError = error as { statusCode?: number; body?: { code?: string } };
+        if (typeof apiError.statusCode === "number" && apiError.statusCode < 500 && typeof apiError.body?.code === "string") {
           return false;
         }
       },

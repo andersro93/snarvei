@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { NONCE, secureHeaders } from "hono/secure-headers";
 import { clickEvents, links } from "./db/schema";
-import { createAuth } from "./lib/auth";
+import { type AuthDeps, createAuth } from "./lib/auth";
 import { hashIp } from "./lib/crypto";
 import { envMiddleware, ipHashPepper } from "./lib/env";
 import { errorJson, notFound, onError, validationHook } from "./lib/errors";
@@ -137,7 +137,9 @@ const baseSecurityHeaders = {
   permissionsPolicy: { camera: [], microphone: [], geolocation: [], payment: [] },
 } satisfies Parameters<typeof secureHeaders>[0];
 
-export const createApp = () => {
+export type AppDeps = AuthDeps;
+
+export const createApp = (deps: AppDeps = {}) => {
   const app = new OpenAPIHono<{ Bindings: AppBindings; Variables: AppVariables }>({ defaultHook: validationHook });
 
   app.onError(onError);
@@ -174,7 +176,7 @@ export const createApp = () => {
   app.use("/api/links", sessionMiddleware);
   app.use("/api/links/*", sessionMiddleware);
 
-  app.on(["GET", "POST"], "/api/auth/*", async (c) => createAuth(c.env).handler(c.req.raw));
+  app.on(["GET", "POST"], "/api/auth/*", async (c) => createAuth(c.env, deps).handler(c.req.raw));
 
   app.openAPIRegistry.registerComponent("securitySchemes", "cookieAuth", {
     type: "apiKey",
