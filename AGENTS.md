@@ -150,6 +150,17 @@ Rules:
 3. The OpenAPI document should be generated from the route definitions.
 4. Avoid hand-maintained OpenAPI files when route metadata can be generated from code.
 
+## Database Migrations
+
+Migrations are forward-only and applied to the remote D1 database *before* the new Worker is deployed (see the deploy workflows). Rules:
+
+1. Never edit `src/worker/db/schema.ts` without running `pnpm db:generate` and committing the resulting migration + snapshot. CI runs `pnpm db:check` and fails on drift.
+2. Every migration must be backward compatible with the Worker version that is currently running (expand/contract): add columns/tables/indexes first, ship code that writes both, and only drop or rename in a later release once nothing reads the old shape.
+3. SQLite cannot alter constraints in place, so drizzle-kit emits table rebuilds wrapped in `PRAGMA foreign_keys=OFF/ON`. D1 applies a migration atomically and that pragma is a no-op inside a transaction, so `DROP TABLE <parent>` can cascade into child tables. Review every generated rebuild; back up and restore affected child rows inside the migration (see `0005_square_nick_fury.sql`) and verify with a SQLite simulation in both `foreign_keys` modes before merging.
+4. Adding a `NOT NULL` column to a populated table needs a default (the default doubles as the backfill); document it in the migration file.
+5. Rollback: `wrangler rollback` / `wrangler deployments list` for the Worker; data via D1 Time Travel (`wrangler d1 time-travel info|restore`, 30-day window) or a `wrangler d1 export --remote` snapshot taken before applying production migrations. A restore loses writes after the bookmark.
+6. Test-side: the vitest setup applies the real migrations to each test file's isolated D1, so new migrations are exercised by the whole suite.
+
 ## Testing Expectations
 
 Testing is a first-class requirement, not optional polish.
