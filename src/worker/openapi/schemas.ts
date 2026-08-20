@@ -6,6 +6,51 @@ export const ErrorSchema = z
   })
   .openapi("Error");
 
+const MAX_TARGET_URL_LENGTH = 2048;
+
+/**
+ * Redirect targets must be absolute http(s) URLs without embedded credentials.
+ * zod's `.url()` only checks WHATWG parseability, which would accept
+ * javascript:, data:, file:, intent: etc. and turn the shortener into an
+ * arbitrary-scheme redirector.
+ */
+export const TargetUrlSchema = z
+  .string()
+  .trim()
+  .min(1, "Target URL is required")
+  .max(MAX_TARGET_URL_LENGTH, `Target URL must be at most ${MAX_TARGET_URL_LENGTH} characters`)
+  .refine(
+    (value) => {
+      try {
+        const url = new URL(value);
+        return (url.protocol === "http:" || url.protocol === "https:") && !url.username && !url.password;
+      } catch {
+        return false;
+      }
+    },
+    { message: "Target URL must be an absolute http(s) URL without credentials" },
+  )
+  .openapi({ example: "https://example.com/landing" });
+
+/** Optional free text; blank strings are treated as "not provided". */
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .optional()
+    .transform((value) => value || undefined);
+
+/** Optional-or-clearable free text for updates: undefined = keep, blank/null = clear. */
+const nullableText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .nullable()
+    .optional()
+    .transform((value) => (value === undefined ? undefined : value || null));
+
 export const LinkSchema = z
   .object({
     id: z.string(),
@@ -13,7 +58,7 @@ export const LinkSchema = z
     teamId: z.string(),
     teamName: z.string().nullable().optional(),
     slug: z.string(),
-    targetUrl: z.string().url(),
+    targetUrl: z.string(),
     redirectStatus: z.union([z.literal(301), z.literal(302), z.literal(307)]),
     isActive: z.boolean(),
     title: z.string().nullable(),
@@ -33,18 +78,18 @@ export const OrganizationLinksParamsSchema = z.object({
 
 export const CreateLinkBodySchema = z.object({
   teamId: z.string(),
-  targetUrl: z.string().url(),
+  targetUrl: TargetUrlSchema,
   redirectStatus: z.union([z.literal(301), z.literal(302), z.literal(307)]).default(302),
-  title: z.string().min(1).max(120).optional(),
-  description: z.string().max(280).optional(),
+  title: optionalText(120),
+  description: optionalText(280),
 });
 
 export const UpdateLinkBodySchema = z.object({
-  targetUrl: z.string().url().optional(),
+  targetUrl: TargetUrlSchema.optional(),
   redirectStatus: z.union([z.literal(301), z.literal(302), z.literal(307)]).optional(),
   isActive: z.boolean().optional(),
-  title: z.string().min(1).max(120).nullable().optional(),
-  description: z.string().max(280).nullable().optional(),
+  title: nullableText(120),
+  description: nullableText(280),
 });
 
 export const HistoryItemSchema = z
