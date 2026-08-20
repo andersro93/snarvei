@@ -23,6 +23,7 @@ type AuthSessionResult = {
   session: {
     id: string;
     userId: string;
+    expiresAt?: Date | string;
     activeOrganizationId?: string | null;
     activeTeamId?: string | null;
   };
@@ -181,5 +182,22 @@ export const createAuthOptions = (env: AppBindings, deps: AuthDeps = {}): Better
   };
 };
 
-export const createAuth = (env: AppBindings, deps: AuthDeps = {}): AuthInstance =>
-  betterAuth(createAuthOptions(env, deps)) as AuthInstance;
+// Better Auth builds its plugin/adapter context eagerly; constructing it on
+// every request wastes CPU and defeats its internal caches. Workers hand the
+// same `env` object to every request of an isolate, so memoise per bindings.
+const authInstances = new WeakMap<AppBindings, AuthInstance>();
+
+export const createAuth = (env: AppBindings, deps: AuthDeps = {}): AuthInstance => {
+  const hasDeps = Object.keys(deps).length > 0;
+  if (!hasDeps) {
+    const cached = authInstances.get(env);
+    if (cached) {
+      return cached;
+    }
+  }
+  const instance = betterAuth(createAuthOptions(env, deps)) as AuthInstance;
+  if (!hasDeps) {
+    authInstances.set(env, instance);
+  }
+  return instance;
+};
