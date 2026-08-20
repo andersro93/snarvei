@@ -3,7 +3,6 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import {
   Alert,
-  Box,
   Button,
   Dialog,
   DialogActions,
@@ -502,26 +501,3 @@ export function CopyButton({ value }: { value: string }) {
   );
 }
 
-export function EmptyDashboard() {
-  return (
-    <Box
-      sx={{
-        minHeight: 360,
-        borderRadius: 4,
-        border: "1px dashed rgba(255,255,255,0.12)",
-        display: "grid",
-        placeItems: "center",
-        background: "linear-gradient(180deg, rgba(15,23,42,0.92), rgba(15,23,42,0.72))",
-      }}
-    >
-      <Stack spacing={1} sx={{ alignItems: "center", textAlign: "center", maxWidth: 420 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800 }}>
-          Dashboard coming next
-        </Typography>
-        <Typography color="text.secondary">
-          The overview page is intentionally empty for now while the links and organization workspace settle into their new structure.
-        </Typography>
-      </Stack>
-    </Box>
-  );
-}

@@ -65,7 +65,8 @@ test("user can create and manage a link end to end", async ({ page }) => {
   await page.getByTestId("organization-name-input").fill(organizationName);
   await page.getByTestId("organization-slug-input").fill(organizationSlug);
   await clickTestIdButton(page, "create-organization-button");
-  await expect(page.getByText("Dashboard coming next")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+  await expect(page.getByTestId("dashboard-teams-count")).toHaveText("0");
   await expect(page).toHaveURL(new RegExp(`/app/${organizationSlug}/dashboard$`));
 
   await page.getByRole("link", { name: "Organization" }).click();

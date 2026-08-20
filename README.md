@@ -183,11 +183,23 @@ Typical flow:
 6. later update the destination if needed
 7. inspect analytics for that Link
 
+## Quickstart
+
+```
+pnpm install
+cp .dev.vars.example .dev.vars      # set AUTH_SECRET (>= 32 chars), APP_URL=http://localhost:5173
+pnpm db:migrate:local
+pnpm dev                            # http://localhost:5173
+pnpm test && pnpm lint && pnpm build
+```
+
+Cloudflare resources per environment (see `wrangler.jsonc`): a D1 database (`DB`), an R2 bucket for profile images (`PROFILE_IMAGES`; create with `wrangler r2 bucket create <name>`), a Rate Limiting binding, and the custom domain. Runtime vars: `APP_URL`, `APP_NAME`, `NODE_ENV`. Profile images are served by the Worker at `/images/profile/*`.
+
+Operations (deploy/verify, rollback, recovery, secrets, common failures): see [`docs/runbook.md`](docs/runbook.md).
+
 ## Development Notes
 
-At the time this README was written, the repository was being initialized from scratch based on a product and architecture conversation.
-
-That means the initial implementation should preserve the decisions documented here and in `AGENTS.md` unless the product direction changes explicitly.
+`AGENTS.md` holds the locked product/architecture decisions; preserve them unless the product direction changes explicitly. The production-readiness review and its follow-ups are tracked in GitHub issue #38.
 
 ## Repository Conventions
 
