@@ -263,6 +263,7 @@ Create the token in Cloudflare:
 7. Add these account permissions:
    `Workers Scripts: Edit`
    `D1: Edit`
+   (optional, only if you declare `routes` with `custom_domain` in `wrangler.jsonc`: zone permissions `Workers Routes: Edit` and `DNS: Edit` for the zone)
 8. Restrict the token to the Cloudflare account that owns Snarvei.
 9. Optionally add an expiry date or other restrictions.
 10. Create the token and copy it immediately.
