@@ -57,8 +57,7 @@ describe("app", () => {
     APP_NAME: "Snarvei",
   };
 
-  const request = (input: string | Request, init?: RequestInit) =>
-    app.request(input, init, testEnv);
+  const request = (input: string | Request, init?: RequestInit) => app.request(input, init, testEnv);
 
   const signUp = async () => {
     const suffix = crypto.randomUUID();
@@ -180,10 +179,12 @@ describe("app", () => {
     const formData = new FormData();
     formData.append("file", new File([new Uint8Array([137, 80, 78, 71])], "avatar.png", { type: "image/png" }));
 
-    const uploadResponse = await request(new Request("http://localhost/api/me/profile-image", {
-      method: "POST",
-      body: formData,
-    }));
+    const uploadResponse = await request(
+      new Request("http://localhost/api/me/profile-image", {
+        method: "POST",
+        body: formData,
+      }),
+    );
 
     expect(uploadResponse.status).toBe(401);
   });

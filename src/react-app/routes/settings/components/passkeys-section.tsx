@@ -32,7 +32,11 @@ export function PasskeysSection(
   },
 ) {
   return (
-    <SectionCard title="Passkeys" description="Register biometric or hardware-backed sign-in methods and manage existing credentials." icon={<VpnKeyOutlinedIcon />}>
+    <SectionCard
+      title="Passkeys"
+      description="Register biometric or hardware-backed sign-in methods and manage existing credentials."
+      icon={<VpnKeyOutlinedIcon />}
+    >
       <Stack spacing={2.5}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
           <TextField
@@ -67,11 +71,16 @@ export function PasskeysSection(
           {props.passkeys.map((passkey) => (
             <Box key={passkey.id} sx={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 3, p: 2.5 }}>
               <Stack spacing={1.5}>
-                <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} sx={{ justifyContent: "space-between", alignItems: { md: "center" } }}>
+                <Stack
+                  direction={{ xs: "column", md: "row" }}
+                  spacing={1.5}
+                  sx={{ justifyContent: "space-between", alignItems: { md: "center" } }}
+                >
                   <Box>
                     <Typography sx={{ fontWeight: 700 }}>{passkey.name || "Unnamed passkey"}</Typography>
                     <Typography color="text.secondary">
-                      {passkey.deviceType || "Unknown device"} · Created {formatDateValue(passkey.createdAt)} · {passkey.backedUp ? "Backed up" : "Not backed up"}
+                      {passkey.deviceType || "Unknown device"} · Created {formatDateValue(passkey.createdAt)} ·{" "}
+                      {passkey.backedUp ? "Backed up" : "Not backed up"}
                     </Typography>
                   </Box>
                   <Stack direction="row" spacing={1}>
@@ -105,7 +114,11 @@ export function PasskeysSection(
                 </Stack>
                 {props.editingPasskeyId === passkey.id ? (
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-                    <TextField value={props.editingPasskeyName} onChange={(event) => props.setEditingPasskeyName(event.target.value)} sx={{ flex: 1 }} />
+                    <TextField
+                      value={props.editingPasskeyName}
+                      onChange={(event) => props.setEditingPasskeyName(event.target.value)}
+                      sx={{ flex: 1 }}
+                    />
                     <Button
                       variant="contained"
                       disabled={!props.editingPasskeyName.trim() || props.busyAction === `rename-passkey-${passkey.id}`}

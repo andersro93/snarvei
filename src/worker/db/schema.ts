@@ -190,10 +190,7 @@ export const passkeys = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp_ms" }).default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`),
     aaguid: text("aaguid"),
   },
-  (table) => [
-    index("passkeys_user_id_idx").on(table.userId),
-    uniqueIndex("passkeys_credential_id_unique").on(table.credentialID),
-  ],
+  (table) => [index("passkeys_user_id_idx").on(table.userId), uniqueIndex("passkeys_credential_id_unique").on(table.credentialID)],
 );
 
 // Better Auth rate limiter storage (rateLimit.storage = "database").

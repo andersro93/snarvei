@@ -4,12 +4,12 @@ Single-operator runbook for the dev and production Cloudflare Workers environmen
 
 ## Environments
 
-| | Production | Dev |
-|---|---|---|
-| Worker | `snarvei` | `snarvei-dev` (`--env dev`) |
-| URL | `https://snarvei.ros-nett.com` | `https://snarvei-dev.ros-nett.com` |
-| D1 | `snarvei` | `snarvei-dev` |
-| R2 | `snarvei-profile-images` | `snarvei-dev-profile-images` |
+|        | Production                                           | Dev                                      |
+| ------ | ---------------------------------------------------- | ---------------------------------------- |
+| Worker | `snarvei`                                            | `snarvei-dev` (`--env dev`)              |
+| URL    | `https://snarvei.ros-nett.com`                       | `https://snarvei-dev.ros-nett.com`       |
+| D1     | `snarvei`                                            | `snarvei-dev`                            |
+| R2     | `snarvei-profile-images`                             | `snarvei-dev-profile-images`             |
 | Deploy | manual `Deploy Production` workflow (ref + approval) | automatic after a green CI run on `main` |
 
 Both are defined in `wrangler.jsonc` (top level = production, `env.dev` = dev). The Worker is bound to its custom domain only (`workers_dev` and `preview_urls` are off).
@@ -18,13 +18,13 @@ Both are defined in `wrangler.jsonc` (top level = production, `env.dev` = dev). 
 
 Set with `pnpm exec wrangler secret put <NAME>` (add `--env dev` for dev). The Worker refuses to serve (HTTP 500 `Server misconfigured`, log event `env.invalid`) when required ones are missing.
 
-| Name | Required | Purpose |
-|---|---|---|
-| `AUTH_SECRET` | yes (>= 32 chars) | Better Auth session signing; default pepper for IP hashing |
-| `IP_HASH_PEPPER` | recommended | Dedicated pepper for visitor IP hashing (rotating `AUTH_SECRET` then keeps analytics stable) |
-| `RESEND_API_KEY` + `EMAIL_FROM` | yes for invitations/verification/reset | Transactional email via Resend; without them messages are dropped with an `email.not_configured` warning |
-| `APP_URL`, `APP_NAME`, `NODE_ENV` | vars in `wrangler.jsonc` | Public origin, display name, production guards |
-| `APP_VERSION` | optional var | Overrides the build-time git SHA reported by `/api/health` |
+| Name                              | Required                               | Purpose                                                                                                  |
+| --------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `AUTH_SECRET`                     | yes (>= 32 chars)                      | Better Auth session signing; default pepper for IP hashing                                               |
+| `IP_HASH_PEPPER`                  | recommended                            | Dedicated pepper for visitor IP hashing (rotating `AUTH_SECRET` then keeps analytics stable)             |
+| `RESEND_API_KEY` + `EMAIL_FROM`   | yes for invitations/verification/reset | Transactional email via Resend; without them messages are dropped with an `email.not_configured` warning |
+| `APP_URL`, `APP_NAME`, `NODE_ENV` | vars in `wrangler.jsonc`               | Public origin, display name, production guards                                                           |
+| `APP_VERSION`                     | optional var                           | Overrides the build-time git SHA reported by `/api/health`                                               |
 
 Rotation: Better Auth accepts a `secrets` array for overlapping rotations (see its docs); rotating `AUTH_SECRET` signs everyone out. Rotate the Cloudflare API token in GitHub Actions secrets (`CLOUDFLARE_API_TOKEN`).
 
@@ -42,14 +42,14 @@ Rotation: Better Auth accepts a `secrets` array for overlapping rotations (see i
 
 ## Common failures
 
-| Symptom | Log event / check | Action |
-|---|---|---|
-| Every request 500 `Server misconfigured` | `env.invalid` | A required secret/var is missing → set it, redeploy not needed |
-| `/api/health` 503 | `health.degraded` (`checks.database`) | D1 unreachable/broken → Cloudflare status, D1 dashboard, Time Travel if corrupted |
-| Invitations never arrive | `email.not_configured` / provider 4xx | Set `RESEND_API_KEY`/`EMAIL_FROM`, check Resend dashboard & domain verification |
-| Users get 429 | `Retry-After` header | Expected under abuse; limits are in `src/worker/lib/auth.ts` (Better Auth) and `wrangler.jsonc` (`RATE_LIMIT` binding) |
-| Redirect works but no analytics | `click.record_failed` | D1 write failure/budget → check D1 metrics & limits |
-| Unexpected 500 on an API route | `request.error` (has `rayId`, `userId`, `path`) | Inspect the stack in Workers Logs; correlate with `version` |
+| Symptom                                  | Log event / check                               | Action                                                                                                                 |
+| ---------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Every request 500 `Server misconfigured` | `env.invalid`                                   | A required secret/var is missing → set it, redeploy not needed                                                         |
+| `/api/health` 503                        | `health.degraded` (`checks.database`)           | D1 unreachable/broken → Cloudflare status, D1 dashboard, Time Travel if corrupted                                      |
+| Invitations never arrive                 | `email.not_configured` / provider 4xx           | Set `RESEND_API_KEY`/`EMAIL_FROM`, check Resend dashboard & domain verification                                        |
+| Users get 429                            | `Retry-After` header                            | Expected under abuse; limits are in `src/worker/lib/auth.ts` (Better Auth) and `wrangler.jsonc` (`RATE_LIMIT` binding) |
+| Redirect works but no analytics          | `click.record_failed`                           | D1 write failure/budget → check D1 metrics & limits                                                                    |
+| Unexpected 500 on an API route           | `request.error` (has `rayId`, `userId`, `path`) | Inspect the stack in Workers Logs; correlate with `version`                                                            |
 
 ## Where to look
 

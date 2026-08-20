@@ -14,7 +14,11 @@ export function PasswordSection(
   },
 ) {
   return (
-    <SectionCard title="Password" description="Change your account password and optionally revoke other active sessions." icon={<KeyOutlinedIcon />}>
+    <SectionCard
+      title="Password"
+      description="Change your account password and optionally revoke other active sessions."
+      icon={<KeyOutlinedIcon />}
+    >
       <Stack spacing={2}>
         <TextField
           label="Current password"

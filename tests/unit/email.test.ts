@@ -31,7 +31,10 @@ describe("createEmailSender", () => {
   });
 
   it("throws when the provider rejects the message", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("nope", { status: 422 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("nope", { status: 422 })),
+    );
     const send = createEmailSender({ ...baseEnv, RESEND_API_KEY: "re_test", EMAIL_FROM: "no-reply@snarvei.example" });
     await expect(send({ to: "x@example.com", subject: "s", text: "t" })).rejects.toThrow(/422/);
   });

@@ -153,7 +153,7 @@ Rules:
 
 ## Database Migrations
 
-Migrations are forward-only and applied to the remote D1 database *before* the new Worker is deployed (see the deploy workflows). Rules:
+Migrations are forward-only and applied to the remote D1 database _before_ the new Worker is deployed (see the deploy workflows). Rules:
 
 1. Never edit `src/worker/db/schema.ts` without running `pnpm db:generate` and committing the resulting migration + snapshot. CI runs `pnpm db:check` and fails on drift.
 2. Every migration must be backward compatible with the Worker version that is currently running (expand/contract): add columns/tables/indexes first, ship code that writes both, and only drop or rename in a later release once nothing reads the old shape.

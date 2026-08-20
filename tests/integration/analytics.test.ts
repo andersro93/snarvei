@@ -94,9 +94,15 @@ describe("list pagination", () => {
 
   it("caps limit and rejects invalid cursors", async () => {
     const { owner, organization } = await setupWorkspace();
-    expect((await request(`${ORIGIN}/api/organizations/${organization.id}/links?limit=0`, { headers: { cookie: owner.cookie } })).status).toBe(400);
-    expect((await request(`${ORIGIN}/api/organizations/${organization.id}/links?limit=9999`, { headers: { cookie: owner.cookie } })).status).toBe(400);
-    expect((await request(`${ORIGIN}/api/organizations/${organization.id}/links?cursor=garbage`, { headers: { cookie: owner.cookie } })).status).toBe(400);
+    expect(
+      (await request(`${ORIGIN}/api/organizations/${organization.id}/links?limit=0`, { headers: { cookie: owner.cookie } })).status,
+    ).toBe(400);
+    expect(
+      (await request(`${ORIGIN}/api/organizations/${organization.id}/links?limit=9999`, { headers: { cookie: owner.cookie } })).status,
+    ).toBe(400);
+    expect(
+      (await request(`${ORIGIN}/api/organizations/${organization.id}/links?cursor=garbage`, { headers: { cookie: owner.cookie } })).status,
+    ).toBe(400);
   });
 
   it("pages link history the same way", async () => {
@@ -115,7 +121,9 @@ describe("list pagination", () => {
     expect(((await first.json()) as unknown[]).length).toBe(3);
     const cursor = first.headers.get("x-next-cursor");
     expect(cursor).toBeTruthy();
-    const second = await request(`${ORIGIN}/api/links/${link.id}/history?limit=3&cursor=${encodeURIComponent(cursor!)}`, { headers: { cookie: owner.cookie } });
+    const second = await request(`${ORIGIN}/api/links/${link.id}/history?limit=3&cursor=${encodeURIComponent(cursor!)}`, {
+      headers: { cookie: owner.cookie },
+    });
     expect(((await second.json()) as unknown[]).length).toBe(1);
     expect(second.headers.get("x-next-cursor")).toBeNull();
   });

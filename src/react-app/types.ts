@@ -100,7 +100,7 @@ export const initialAnalytics: AnalyticsSummary = {
   range: { from: "", to: "" },
 };
 
-export const readCollection = <T,>(value: unknown, keys: string[]): T[] => {
+export const readCollection = <T>(value: unknown, keys: string[]): T[] => {
   if (Array.isArray(value)) {
     return value as T[];
   }

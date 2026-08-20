@@ -110,7 +110,7 @@ export function AppShell() {
                     borderRadius: 3,
                     px: 1.5,
                     py: 1,
-                    '&.Mui-selected': {
+                    "&.Mui-selected": {
                       backgroundColor: "rgba(139,92,246,0.18)",
                     },
                   }}

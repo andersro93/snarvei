@@ -38,7 +38,13 @@ export const createEmailSender = (env: EmailEnv): EmailSender => {
       const response = await fetch(RESEND_ENDPOINT, {
         method: "POST",
         headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-        body: JSON.stringify({ from, to: [message.to], subject: message.subject, text: message.text, ...(message.html ? { html: message.html } : {}) }),
+        body: JSON.stringify({
+          from,
+          to: [message.to],
+          subject: message.subject,
+          text: message.text,
+          ...(message.html ? { html: message.html } : {}),
+        }),
       });
       if (!response.ok) {
         throw new Error(`Email provider rejected the message (HTTP ${response.status})`);
@@ -71,7 +77,12 @@ ${bodyHtml}
 const linkButton = (href: string, label: string) =>
   `<p><a href="${escapeHtml(href)}" style="display:inline-block;padding:10px 16px;background:#4f46e5;color:#fff;text-decoration:none;border-radius:6px">${escapeHtml(label)}</a></p><p style="font-size:12px;color:#666">Or open this link: ${escapeHtml(href)}</p>`;
 
-export const invitationEmail = (input: { appName: string; organizationName: string; inviterName?: string | null; inviteLink: string }): Omit<EmailMessage, "to"> => {
+export const invitationEmail = (input: {
+  appName: string;
+  organizationName: string;
+  inviterName?: string | null;
+  inviteLink: string;
+}): Omit<EmailMessage, "to"> => {
   const by = input.inviterName ? ` by ${input.inviterName}` : "";
   return {
     subject: `You have been invited to ${input.organizationName} on ${input.appName}`,
@@ -87,13 +98,21 @@ export const invitationEmail = (input: { appName: string; organizationName: stri
 export const verificationEmail = (input: { appName: string; url: string }): Omit<EmailMessage, "to"> => ({
   subject: `Verify your email for ${input.appName}`,
   text: `Confirm this email address for ${input.appName}: ${input.url}`,
-  html: layout(input.appName, "Verify your email", `<p>Confirm this email address for ${escapeHtml(input.appName)}.</p>${linkButton(input.url, "Verify email")}`),
+  html: layout(
+    input.appName,
+    "Verify your email",
+    `<p>Confirm this email address for ${escapeHtml(input.appName)}.</p>${linkButton(input.url, "Verify email")}`,
+  ),
 });
 
 export const passwordResetEmail = (input: { appName: string; url: string }): Omit<EmailMessage, "to"> => ({
   subject: `Reset your ${input.appName} password`,
   text: `Reset your ${input.appName} password: ${input.url}\n\nIf you did not request this, ignore this email.`,
-  html: layout(input.appName, "Reset your password", `<p>Use the button below to choose a new password.</p>${linkButton(input.url, "Reset password")}`),
+  html: layout(
+    input.appName,
+    "Reset your password",
+    `<p>Use the button below to choose a new password.</p>${linkButton(input.url, "Reset password")}`,
+  ),
 });
 
 export const changeEmailVerificationEmail = (input: { appName: string; newEmail: string; url: string }): Omit<EmailMessage, "to"> => ({

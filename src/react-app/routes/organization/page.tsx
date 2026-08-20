@@ -63,13 +63,20 @@ export function OrganizationPage() {
           <Typography variant="h4" sx={{ fontWeight: 800 }}>
             Organization
           </Typography>
-          <Typography color="text.secondary">Manage members, invitations, and teams for {activeOrganization?.name ?? "the active organization"}.</Typography>
+          <Typography color="text.secondary">
+            Manage members, invitations, and teams for {activeOrganization?.name ?? "the active organization"}.
+          </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
           <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setCreateTeamOpen(true)} data-testid="open-create-team-button">
             Create team
           </Button>
-          <Button variant="contained" startIcon={<PersonAddAlt1Icon />} onClick={() => setInviteOpen(true)} data-testid="open-invite-member-button">
+          <Button
+            variant="contained"
+            startIcon={<PersonAddAlt1Icon />}
+            onClick={() => setInviteOpen(true)}
+            data-testid="open-invite-member-button"
+          >
             Invite member
           </Button>
         </Stack>
@@ -126,7 +133,11 @@ export function OrganizationPage() {
             <Stack spacing={1}>
               {invitations.length ? (
                 invitations.map((invitation: Invitation) => (
-                  <Paper key={invitation.id} sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }} data-testid={`invitation-${invitation.email}`}>
+                  <Paper
+                    key={invitation.id}
+                    sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }}
+                    data-testid={`invitation-${invitation.email}`}
+                  >
                     <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between", alignItems: "center" }}>
                       <Box>
                         <Typography sx={{ fontWeight: 700 }}>{invitation.email}</Typography>

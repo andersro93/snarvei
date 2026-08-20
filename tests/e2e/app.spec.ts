@@ -84,9 +84,7 @@ test("user can create and manage a link end to end", async ({ page }) => {
   await page.getByTestId("create-link-title-input").fill(linkTitle);
   await page.getByTestId("create-link-description-input").fill("Created from Playwright coverage");
   await Promise.all([
-    page.waitForResponse(
-      (response) => response.url().includes("/api/links") && response.request().method() === "POST" && response.ok(),
-    ),
+    page.waitForResponse((response) => response.url().includes("/api/links") && response.request().method() === "POST" && response.ok()),
     clickTestIdButton(page, "create-link-button"),
   ]);
   await expect(page.getByText("Short link created.")).toBeVisible();
@@ -253,7 +251,9 @@ test("invited member accepts the invitation and only sees their team's links", a
   const { growthLink, opsLink } = await page.evaluate(async () => {
     const me = (await (await fetch("/api/me", { credentials: "include" })).json()) as { session: { activeOrganizationId: string } };
     const organizationId = me.session.activeOrganizationId;
-    const teams = (await (await fetch(`/api/auth/organization/list-teams?organizationId=${organizationId}`, { credentials: "include" })).json()) as Array<{ id: string; name: string }>;
+    const teams = (await (
+      await fetch(`/api/auth/organization/list-teams?organizationId=${organizationId}`, { credentials: "include" })
+    ).json()) as Array<{ id: string; name: string }>;
     const create = async (teamId: string, title: string) =>
       (await (
         await fetch("/api/links", {

@@ -1,10 +1,7 @@
 import { Alert, Card, CardContent, CircularProgress, Paper, Stack, Typography } from "@mui/material";
 import type { AnalyticsSummary } from "../../../types";
 
-export function LinkAnalyticsCard(props: {
-  analytics: AnalyticsSummary;
-  loading: boolean;
-}) {
+export function LinkAnalyticsCard(props: { analytics: AnalyticsSummary; loading: boolean }) {
   return (
     <Card sx={{ flex: 1, border: "1px solid rgba(255,255,255,0.08)" }}>
       <CardContent>
@@ -72,7 +69,8 @@ export function LinkAnalyticsCard(props: {
               </Paper>
               {props.analytics.range.from ? (
                 <Typography variant="caption" color="text.secondary">
-                  Window: {new Date(props.analytics.range.from).toLocaleDateString()} – {new Date(props.analytics.range.to).toLocaleDateString()}
+                  Window: {new Date(props.analytics.range.from).toLocaleDateString()} –{" "}
+                  {new Date(props.analytics.range.to).toLocaleDateString()}
                 </Typography>
               ) : null}
             </Stack>

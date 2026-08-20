@@ -100,8 +100,12 @@ const registerPlainRoutesInOpenApi = (app: OpenAPIHono<{ Bindings: AppBindings; 
           "application/json": {
             schema: z.object({
               authenticated: z.literal(true),
-              user: z.object({ id: z.string(), email: z.string(), name: z.string(), image: z.string().nullable().optional() }).passthrough(),
-              session: z.object({ id: z.string(), userId: z.string(), activeOrganizationId: z.string().nullable().optional() }).passthrough(),
+              user: z
+                .object({ id: z.string(), email: z.string(), name: z.string(), image: z.string().nullable().optional() })
+                .passthrough(),
+              session: z
+                .object({ id: z.string(), userId: z.string(), activeOrganizationId: z.string().nullable().optional() })
+                .passthrough(),
             }),
           },
         },

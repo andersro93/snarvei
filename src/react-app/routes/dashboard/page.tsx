@@ -27,13 +27,24 @@ export function DashboardPage() {
           <Typography variant="h4" sx={{ fontWeight: 800 }}>
             Overview
           </Typography>
-          <Typography color="text.secondary">{activeOrganization ? `What is happening in ${activeOrganization.name}.` : "Choose an organization to get started."}</Typography>
+          <Typography color="text.secondary">
+            {activeOrganization ? `What is happening in ${activeOrganization.name}.` : "Choose an organization to get started."}
+          </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
-          <Button variant="outlined" startIcon={<PersonAddAlt1Icon />} onClick={() => navigate(buildOrganizationPath(activeOrganization, "organization"))}>
+          <Button
+            variant="outlined"
+            startIcon={<PersonAddAlt1Icon />}
+            onClick={() => navigate(buildOrganizationPath(activeOrganization, "organization"))}
+          >
             Invite member
           </Button>
-          <Button variant="contained" startIcon={<AddIcon />} disabled={!teams.length} onClick={() => navigate(buildLinksPath(activeOrganization))}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            disabled={!teams.length}
+            onClick={() => navigate(buildLinksPath(activeOrganization))}
+          >
             Create link
           </Button>
         </Stack>
@@ -59,7 +70,9 @@ export function DashboardPage() {
           {loadingLinks ? <CircularProgress size={20} /> : null}
           {!loadingLinks && !recentLinks.length ? (
             <Alert severity="info">
-              {teams.length ? "No links yet. Create your first short link from the Links page." : "Create a team first, then add links to it."}
+              {teams.length
+                ? "No links yet. Create your first short link from the Links page."
+                : "Create a team first, then add links to it."}
             </Alert>
           ) : null}
           <Stack spacing={1}>

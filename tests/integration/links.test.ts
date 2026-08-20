@@ -14,9 +14,7 @@ describe("public redirect /l/:slug", () => {
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("https://example.com/landing");
 
-    const event = await env.DB.prepare("SELECT * FROM click_events WHERE link_id = ?")
-      .bind(link.id)
-      .first<Record<string, unknown>>();
+    const event = await env.DB.prepare("SELECT * FROM click_events WHERE link_id = ?").bind(link.id).first<Record<string, unknown>>();
     expect(event).not.toBeNull();
     expect(event?.ip_hash).toBeTruthy();
     expect(event?.ip_hash).not.toContain("203.0.113.9");
@@ -80,7 +78,9 @@ describe("link mutations", () => {
     const { owner, team } = await setupWorkspace();
     const link = await createLink(owner, { teamId: team.id, targetUrl: "https://example.com/v1" });
 
-    const history = (await (await request(`${ORIGIN}/api/links/${link.id}/history`, { headers: { cookie: owner.cookie } })).json()) as Array<{
+    const history = (await (
+      await request(`${ORIGIN}/api/links/${link.id}/history`, { headers: { cookie: owner.cookie } })
+    ).json()) as Array<{
       oldTargetUrl: string | null;
       newTargetUrl: string;
     }>;
@@ -101,7 +101,9 @@ describe("link mutations", () => {
       jsonInit("PATCH", { targetUrl: "https://example.com/v2" }, owner.cookie),
     );
     expect(retarget.status).toBe(200);
-    const history = (await (await request(`${ORIGIN}/api/links/${link.id}/history`, { headers: { cookie: owner.cookie } })).json()) as Array<{
+    const history = (await (
+      await request(`${ORIGIN}/api/links/${link.id}/history`, { headers: { cookie: owner.cookie } })
+    ).json()) as Array<{
       oldTargetUrl: string | null;
       newTargetUrl: string;
     }>;

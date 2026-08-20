@@ -11,7 +11,10 @@ type LoadState = { status: "loading" } | { status: "error"; message: string } | 
 const fetchInvitation = async (invitationId: string): Promise<LoadState> => {
   const result = await authClient.organization.getInvitation({ query: { id: invitationId } });
   if (result.error || !result.data) {
-    return { status: "error", message: result.error?.message ?? "This invitation could not be found. It may have expired or been cancelled." };
+    return {
+      status: "error",
+      message: result.error?.message ?? "This invitation could not be found. It may have expired or been cancelled.",
+    };
   }
   return { status: "ready", invitation: result.data };
 };
@@ -84,8 +87,8 @@ export function InvitationPage() {
               ) : null}
               {emailMismatch ? (
                 <Alert severity="warning">
-                  This invitation was sent to {state.invitation.email}, but you are signed in as {session?.user.email}. Sign in with the invited
-                  address to accept it.
+                  This invitation was sent to {state.invitation.email}, but you are signed in as {session?.user.email}. Sign in with the
+                  invited address to accept it.
                 </Alert>
               ) : null}
               <Stack direction="row" spacing={2}>

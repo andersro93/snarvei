@@ -11,7 +11,11 @@ export function EmailSection(
   },
 ) {
   return (
-    <SectionCard title="Email" description="Request an email address change. Verification is sent to the new address only." icon={<KeyOutlinedIcon />}>
+    <SectionCard
+      title="Email"
+      description="Request an email address change. Verification is sent to the new address only."
+      icon={<KeyOutlinedIcon />}
+    >
       <Stack spacing={2}>
         <TextField
           label="New email"
