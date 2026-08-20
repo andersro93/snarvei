@@ -18,7 +18,6 @@ Required Cloudflare Worker secrets configured in the target Worker environment:
 Optional:
 
 1. `IP_HASH_PEPPER` — dedicated secret for hashing visitor IPs. Defaults to `AUTH_SECRET`; set it so that rotating `AUTH_SECRET` does not reset unique-visitor analytics.
-2. `RESEND_API_KEY` + `EMAIL_FROM` — transactional email (organization invitations, email verification, password reset, change-email confirmation) via Resend (`wrangler secret put RESEND_API_KEY`; `EMAIL_FROM` can be a var or secret, e.g. `Snarvei <no-reply@your-domain>`). **Required for production**: without them invitations are dropped (a redacted `email.not_configured` warning is logged — never the link).
 
 Notes:
 
