@@ -3,8 +3,26 @@ import { createRoute, z } from "@hono/zod-openapi";
 export const ErrorSchema = z
   .object({
     error: z.string(),
+    issues: z.array(z.unknown()).optional(),
   })
   .openapi("Error");
+
+const errorResponse = (description: string) => ({
+  description,
+  content: { "application/json": { schema: ErrorSchema } },
+});
+
+/** Error responses every authenticated route can produce. */
+export const authErrorResponses = {
+  401: errorResponse("Authentication required"),
+  403: errorResponse("Forbidden"),
+};
+
+export const notFoundResponse = { 404: errorResponse("Not found") };
+export const badRequestResponse = { 400: errorResponse("Validation failed") };
+
+/** All protected routes authenticate with the Better Auth session cookie. */
+export const cookieSecurity = [{ cookieAuth: [] }];
 
 const MAX_TARGET_URL_LENGTH = 2048;
 
@@ -120,15 +138,14 @@ export const linkListRoute = createRoute({
       teamId: z.string().openapi({ param: { name: "teamId", in: "path" } }),
     }),
   },
+  security: cookieSecurity,
   responses: {
     200: {
       description: "List links in a team",
       content: { "application/json": { schema: z.array(LinkSchema) } },
     },
-    403: {
-      description: "Forbidden",
-      content: { "application/json": { schema: ErrorSchema } },
-    },
+    ...authErrorResponses,
+    ...notFoundResponse,
   },
 });
 
@@ -138,15 +155,13 @@ export const organizationLinkListRoute = createRoute({
   request: {
     params: OrganizationLinksParamsSchema,
   },
+  security: cookieSecurity,
   responses: {
     200: {
       description: "List links visible in an organization",
       content: { "application/json": { schema: z.array(LinkSchema) } },
     },
-    403: {
-      description: "Forbidden",
-      content: { "application/json": { schema: ErrorSchema } },
-    },
+    ...authErrorResponses,
   },
 });
 
@@ -162,15 +177,15 @@ export const createLinkRoute = createRoute({
       },
     },
   },
+  security: cookieSecurity,
   responses: {
     201: {
       description: "Link created",
       content: { "application/json": { schema: LinkSchema } },
     },
-    400: {
-      description: "Bad request",
-      content: { "application/json": { schema: ErrorSchema } },
-    },
+    ...badRequestResponse,
+    ...authErrorResponses,
+    ...notFoundResponse,
   },
 });
 
@@ -182,15 +197,14 @@ export const getLinkRoute = createRoute({
       linkId: z.string().openapi({ param: { name: "linkId", in: "path" } }),
     }),
   },
+  security: cookieSecurity,
   responses: {
     200: {
       description: "Link detail",
       content: { "application/json": { schema: LinkSchema } },
     },
-    404: {
-      description: "Not found",
-      content: { "application/json": { schema: ErrorSchema } },
-    },
+    ...authErrorResponses,
+    ...notFoundResponse,
   },
 });
 
@@ -209,11 +223,15 @@ export const updateLinkRoute = createRoute({
       },
     },
   },
+  security: cookieSecurity,
   responses: {
     200: {
       description: "Link updated",
       content: { "application/json": { schema: LinkSchema } },
     },
+    ...badRequestResponse,
+    ...authErrorResponses,
+    ...notFoundResponse,
   },
 });
 
@@ -225,6 +243,7 @@ export const deleteLinkRoute = createRoute({
       linkId: z.string().openapi({ param: { name: "linkId", in: "path" } }),
     }),
   },
+  security: cookieSecurity,
   responses: {
     200: {
       description: "Link deleted",
@@ -234,6 +253,8 @@ export const deleteLinkRoute = createRoute({
         },
       },
     },
+    ...authErrorResponses,
+    ...notFoundResponse,
   },
 });
 
@@ -245,11 +266,14 @@ export const historyRoute = createRoute({
       linkId: z.string().openapi({ param: { name: "linkId", in: "path" } }),
     }),
   },
+  security: cookieSecurity,
   responses: {
     200: {
       description: "Link history",
       content: { "application/json": { schema: z.array(HistoryItemSchema) } },
     },
+    ...authErrorResponses,
+    ...notFoundResponse,
   },
 });
 
@@ -261,10 +285,13 @@ export const analyticsRoute = createRoute({
       linkId: z.string().openapi({ param: { name: "linkId", in: "path" } }),
     }),
   },
+  security: cookieSecurity,
   responses: {
     200: {
       description: "Analytics summary",
       content: { "application/json": { schema: AnalyticsSummarySchema } },
     },
+    ...authErrorResponses,
+    ...notFoundResponse,
   },
 });

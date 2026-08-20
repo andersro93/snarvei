@@ -202,7 +202,7 @@ export const registerLinkRoutes = (app: AppRoute) => {
     const db = getDb(c);
     const [link] = await selectLinkWithTeam(db, linkId);
     if (!link) {
-      return c.json({ error: "Link not found" }, 404);
+      throw new HTTPException(404, { message: "Link not found" });
     }
 
     await requireTeamAccess(c, link.teamId);
@@ -278,7 +278,7 @@ export const registerLinkRoutes = (app: AppRoute) => {
 
     await requireTeamAccess(c, existing.teamId);
     await db.delete(links).where(eq(links.id, linkId));
-    return c.json({ success: true }, 200);
+    return c.json({ success: true as const }, 200);
   });
 
   app.openapi(historyRoute, async (c) => {
