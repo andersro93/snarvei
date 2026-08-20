@@ -127,6 +127,8 @@ export const AnalyticsSummarySchema = z
     topCountries: z.array(z.object({ country: z.string().nullable(), clicks: z.number() })),
     topReferrers: z.array(z.object({ referer: z.string().nullable(), clicks: z.number() })),
     clicksByDay: z.array(z.object({ day: z.string(), clicks: z.number() })),
+    /** The time window the numbers were computed for (ISO timestamps). */
+    range: z.object({ from: z.string(), to: z.string() }),
   })
   .openapi("AnalyticsSummary");
 
@@ -160,6 +162,25 @@ export const teamMembersRoute = createRoute({
   },
 });
 
+/** Analytics window: defaults to the last 30 days; at most one year. */
+export const AnalyticsQuerySchema = z.object({
+  from: z.string().datetime({ offset: true }).optional().openapi({ description: "ISO timestamp, inclusive; defaults to 30 days before `to`" }),
+  to: z.string().datetime({ offset: true }).optional().openapi({ description: "ISO timestamp, exclusive; defaults to now" }),
+});
+
+export const PAGE_SIZE_DEFAULT = 100;
+export const PAGE_SIZE_MAX = 500;
+
+/** Keyset pagination for newest-first lists. The next cursor is returned in the `X-Next-Cursor` response header. */
+export const ListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(PAGE_SIZE_MAX).default(PAGE_SIZE_DEFAULT).openapi({ description: `Page size (1-${PAGE_SIZE_MAX}, default ${PAGE_SIZE_DEFAULT})` }),
+  cursor: z.string().optional().openapi({ description: "Opaque cursor from the previous page's X-Next-Cursor header" }),
+});
+
+const nextCursorHeader = {
+  "X-Next-Cursor": { schema: { type: "string" as const }, description: "Cursor for the next page; absent on the last page" },
+};
+
 export const linkListRoute = createRoute({
   method: "get",
   path: "/api/teams/{teamId}/links",
@@ -167,13 +188,16 @@ export const linkListRoute = createRoute({
     params: z.object({
       teamId: z.string().openapi({ param: { name: "teamId", in: "path" } }),
     }),
+    query: ListQuerySchema,
   },
   security: cookieSecurity,
   responses: {
     200: {
-      description: "List links in a team",
+      description: "List links in a team (newest first, paginated)",
+      headers: nextCursorHeader,
       content: { "application/json": { schema: z.array(LinkSchema) } },
     },
+    ...badRequestResponse,
     ...authErrorResponses,
     ...notFoundResponse,
   },
@@ -184,13 +208,16 @@ export const organizationLinkListRoute = createRoute({
   path: "/api/organizations/{organizationId}/links",
   request: {
     params: OrganizationLinksParamsSchema,
+    query: ListQuerySchema,
   },
   security: cookieSecurity,
   responses: {
     200: {
-      description: "List links visible in an organization",
+      description: "List links visible in an organization (newest first, paginated)",
+      headers: nextCursorHeader,
       content: { "application/json": { schema: z.array(LinkSchema) } },
     },
+    ...badRequestResponse,
     ...authErrorResponses,
   },
 });
@@ -295,13 +322,16 @@ export const historyRoute = createRoute({
     params: z.object({
       linkId: z.string().openapi({ param: { name: "linkId", in: "path" } }),
     }),
+    query: ListQuerySchema,
   },
   security: cookieSecurity,
   responses: {
     200: {
-      description: "Link history",
+      description: "Link history (newest first, paginated)",
+      headers: nextCursorHeader,
       content: { "application/json": { schema: z.array(HistoryItemSchema) } },
     },
+    ...badRequestResponse,
     ...authErrorResponses,
     ...notFoundResponse,
   },
@@ -314,13 +344,15 @@ export const analyticsRoute = createRoute({
     params: z.object({
       linkId: z.string().openapi({ param: { name: "linkId", in: "path" } }),
     }),
+    query: AnalyticsQuerySchema,
   },
   security: cookieSecurity,
   responses: {
     200: {
-      description: "Analytics summary",
+      description: "Analytics summary for the requested time window",
       content: { "application/json": { schema: AnalyticsSummarySchema } },
     },
+    ...badRequestResponse,
     ...authErrorResponses,
     ...notFoundResponse,
   },
