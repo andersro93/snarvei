@@ -11,9 +11,13 @@ Required GitHub Actions secrets:
 1. `CLOUDFLARE_API_TOKEN`
 2. `CLOUDFLARE_ACCOUNT_ID`
 
-Recommended Cloudflare Worker secret configured in the target Worker environment:
+Required Cloudflare Worker secrets configured in the target Worker environment:
 
-1. `AUTH_SECRET`
+1. `AUTH_SECRET` (at least 32 characters). The Worker refuses to serve requests (HTTP 500 `Server misconfigured`) when it is missing or too short, or when `APP_URL`/`DB` are not configured.
+
+Optional:
+
+1. `IP_HASH_PEPPER` — dedicated secret for hashing visitor IPs. Defaults to `AUTH_SECRET`; set it so that rotating `AUTH_SECRET` does not reset unique-visitor analytics.
 
 Notes:
 

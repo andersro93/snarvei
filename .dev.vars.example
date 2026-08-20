@@ -1,2 +1,6 @@
-AUTH_SECRET=change-me-in-local-dev
+# At least 32 characters; generate with: openssl rand -hex 32
+AUTH_SECRET=change-me-in-local-dev-change-me-in-local-dev
 APP_URL=http://localhost:8787
+# Optional: dedicated secret for hashing visitor IPs (defaults to AUTH_SECRET).
+# Set it in production so rotating AUTH_SECRET does not reset visitor analytics.
+# IP_HASH_PEPPER=change-me-too
