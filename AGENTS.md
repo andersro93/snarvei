@@ -45,7 +45,7 @@ These decisions are already made and should be treated as defaults unless the us
 
 ### Authentication and Authorization
 
-1. V1 auth method is email/password only.
+1. V1 auth is email/password, with optional TOTP two-factor, passkeys and change-email (all shipped and tested; keep them). No SSO/SAML.
 2. Any authenticated user may create an organization in V1.
 3. Better Auth organizations are enabled.
 4. Better Auth teams are enabled.
@@ -54,6 +54,7 @@ These decisions are already made and should be treated as defaults unless the us
 7. If a user is a member of a Team, they have full access to links in that Team.
 8. Org `owner` and `admin` can access all Teams in the org.
 9. Org `member` can only access Teams they explicitly belong to.
+10. Invitations carry an optional Team; invitees accept at `/app/invitations/:id`; owners/admins manage Team membership from the Organization page (`GET /api/teams/{teamId}/members` + Better Auth add/remove-team-member). Roles may be comma-joined strings — always go through `parseRoles`/`isOrgAdmin` in `src/worker/middleware/guards.ts`.
 
 ### Links and Analytics
 
@@ -160,6 +161,10 @@ Migrations are forward-only and applied to the remote D1 database *before* the n
 4. Adding a `NOT NULL` column to a populated table needs a default (the default doubles as the backfill); document it in the migration file.
 5. Rollback: `wrangler rollback` / `wrangler deployments list` for the Worker; data via D1 Time Travel (`wrangler d1 time-travel info|restore`, 30-day window) or a `wrangler d1 export --remote` snapshot taken before applying production migrations. A restore loses writes after the bookmark.
 6. Test-side: the vitest setup applies the real migrations to each test file's isolated D1, so new migrations are exercised by the whole suite.
+
+## Operations
+
+`docs/runbook.md` is the operational source of truth (environments, secrets, deploy/verify, rollback, recovery, common failures). Update it together with behaviour changes.
 
 ## Testing Expectations
 
