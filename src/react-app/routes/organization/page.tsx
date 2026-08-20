@@ -93,7 +93,13 @@ export function OrganizationPage() {
                     key={team.id}
                     label={team.name}
                     icon={<GroupIcon />}
-                    onClick={() => setManagedTeam(team)}
+                    onClick={() => {
+                      // Refresh members first: someone may have accepted an invitation since the page loaded.
+                      if (activeOrganizationId) {
+                        void refreshOrganizationData(activeOrganizationId, { silent: true });
+                      }
+                      setManagedTeam(team);
+                    }}
                     data-testid={`manage-team-${team.name}`}
                     clickable
                   />
