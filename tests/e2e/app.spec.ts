@@ -3,6 +3,19 @@ import type { Page } from "@playwright/test";
 
 const unique = () => crypto.randomUUID().slice(0, 8);
 
+/**
+ * Every test gets its own client IP. Auth and redirect endpoints are rate
+ * limited per IP (Better Auth + the RATE_LIMIT binding); without this, the
+ * whole suite shares 127.0.0.1 and repeated sign-ups trip the limits.
+ * Locally the Worker trusts cf-connecting-ip; on Cloudflare the edge sets it.
+ */
+const uniqueClientIp = () =>
+  `10.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 254) + 1}`;
+
+test.beforeEach(async ({ context }) => {
+  await context.setExtraHTTPHeaders({ "cf-connecting-ip": uniqueClientIp() });
+});
+
 const clickTestIdButton = async (page: Page, testId: string) => {
   const button = page.getByTestId(testId);
   await expect(button).toBeEnabled();
@@ -119,7 +132,7 @@ test("existing user can sign in with email and password", async ({ page }) => {
 
   const signUpResponse = await page.request.post("/api/auth/sign-up/email", {
     data: { name: `Returning ${id}`, email, password },
-    headers: { origin: "http://127.0.0.1:4173" },
+    headers: { origin: "http://127.0.0.1:4173", "cf-connecting-ip": uniqueClientIp() },
   });
   expect(signUpResponse.ok()).toBeTruthy();
   await page.context().clearCookies();
