@@ -4,3 +4,9 @@ APP_URL=http://localhost:8787
 # Optional: dedicated secret for hashing visitor IPs (defaults to AUTH_SECRET).
 # Set it in production so rotating AUTH_SECRET does not reset visitor analytics.
 # IP_HASH_PEPPER=change-me-too
+# Transactional email (invitations, verification, password reset). Optional in
+# local dev: without a provider, messages are dropped with a redacted log line.
+# RESEND_API_KEY=re_xxx
+# EMAIL_FROM=Snarvei <no-reply@your-domain.example>
+# Local development only: log full email bodies (including links) instead.
+EMAIL_DEV_LOG=true
