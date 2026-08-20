@@ -1,6 +1,6 @@
 import { Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { authClient } from "../../lib/auth-client";
 import { useWorkspace } from "../../hooks/use-workspace-context";
 
@@ -39,8 +39,7 @@ export function LandingPage() {
   }
 
   if (session) {
-    void navigate("/app/select-organization", { replace: true });
-    return null;
+    return <Navigate to={afterAuthPath} replace />;
   }
 
   return (
