@@ -55,6 +55,12 @@ const selectLinkWithTeam = (db: ReturnType<typeof getDb>, linkId: string) =>
     .where(eq(links.id, linkId))
     .limit(1);
 
+const MAX_SLUG_ATTEMPTS = 10;
+
+/** D1 reports unique-index violations as "UNIQUE constraint failed: <table>.<column>". */
+const isSlugCollision = (error: unknown) =>
+  error instanceof Error && /UNIQUE constraint failed: links\.slug/.test(error.message);
+
 export const registerLinkRoutes = (app: AppRoute) => {
   app.openapi(linkListRoute, async (c) => {
     const { teamId } = c.req.valid("param");
@@ -138,41 +144,49 @@ export const registerLinkRoutes = (app: AppRoute) => {
     const body = c.req.valid("json");
     const team = await requireTeamAccess(c, body.teamId);
 
-    let slug = generateSlug();
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      const [existing] = await db.select({ id: links.id }).from(links).where(eq(links.slug, slug)).limit(1);
-      if (!existing) {
-        break;
-      }
-      slug = generateSlug();
-    }
-
     const linkId = crypto.randomUUID();
+    const historyId = crypto.randomUUID();
     const now = new Date();
-    await db.insert(links).values({
-      id: linkId,
-      organizationId: team.organizationId,
-      teamId: team.id,
-      slug,
-      targetUrl: body.targetUrl,
-      redirectStatus: body.redirectStatus,
-      isActive: true,
-      title: body.title ?? null,
-      description: body.description ?? null,
-      createdBy: user.id,
-      updatedBy: user.id,
-      createdAt: now,
-      updatedAt: now,
-    });
 
-    await db.insert(linkTargetHistory).values({
-      id: crypto.randomUUID(),
-      linkId,
-      oldTargetUrl: null,
-      newTargetUrl: body.targetUrl,
-      changedBy: user.id,
-      changedAt: now,
-    });
+    // Insert the link and its initial history row atomically (D1 batches are
+    // transactional). Slug uniqueness is enforced by the database; on the rare
+    // collision we simply generate a new slug and try again.
+    for (let attempt = 0; ; attempt += 1) {
+      const slug = generateSlug();
+      try {
+        await db.batch([
+          db.insert(links).values({
+            id: linkId,
+            organizationId: team.organizationId,
+            teamId: team.id,
+            slug,
+            targetUrl: body.targetUrl,
+            redirectStatus: body.redirectStatus,
+            isActive: true,
+            title: body.title ?? null,
+            description: body.description ?? null,
+            createdBy: user.id,
+            updatedBy: user.id,
+            createdAt: now,
+            updatedAt: now,
+          }),
+          db.insert(linkTargetHistory).values({
+            id: historyId,
+            linkId,
+            oldTargetUrl: null,
+            newTargetUrl: body.targetUrl,
+            changedBy: user.id,
+            changedAt: now,
+          }),
+        ]);
+        break;
+      } catch (error) {
+        if (isSlugCollision(error) && attempt < MAX_SLUG_ATTEMPTS - 1) {
+          continue;
+        }
+        throw error;
+      }
+    }
 
     const [created] = await selectLinkWithTeam(db, linkId);
     if (!created) {
@@ -215,7 +229,7 @@ export const registerLinkRoutes = (app: AppRoute) => {
     const nextDescription = body.description === undefined ? existing.description : body.description;
     const now = new Date();
 
-    await db
+    const updateLink = db
       .update(links)
       .set({
         targetUrl: nextTarget,
@@ -229,14 +243,20 @@ export const registerLinkRoutes = (app: AppRoute) => {
       .where(eq(links.id, linkId));
 
     if (body.targetUrl && body.targetUrl !== existing.targetUrl) {
-      await db.insert(linkTargetHistory).values({
-        id: crypto.randomUUID(),
-        linkId,
-        oldTargetUrl: existing.targetUrl,
-        newTargetUrl: body.targetUrl,
-        changedBy: user.id,
-        changedAt: now,
-      });
+      // Target change + history row must land together (or not at all).
+      await db.batch([
+        updateLink,
+        db.insert(linkTargetHistory).values({
+          id: crypto.randomUUID(),
+          linkId,
+          oldTargetUrl: existing.targetUrl,
+          newTargetUrl: body.targetUrl,
+          changedBy: user.id,
+          changedAt: now,
+        }),
+      ]);
+    } else {
+      await updateLink;
     }
 
     const [updated] = await selectLinkWithTeam(db, linkId);
