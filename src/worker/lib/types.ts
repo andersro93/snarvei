@@ -22,11 +22,13 @@ export type AppBindings = {
 
 export type AppVariables = {
   db: Database;
+  /** Minimal session view kept in request context; never the raw Better Auth row (which carries the token). */
   session: {
     id: string;
     userId: string;
-    activeOrganizationId?: string | null;
-    activeTeamId?: string | null;
+    expiresAt: string | null;
+    activeOrganizationId: string | null;
+    activeTeamId: string | null;
   } | null;
   user: {
     id: string;

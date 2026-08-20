@@ -1,3 +1,5 @@
+import type { AnalyticsSummaryDto, HistoryItemDto, LinkDto, TeamMemberDto } from "../shared/api-types";
+
 export type Team = {
   id: string;
   name: string;
@@ -9,22 +11,7 @@ export type OrganizationSummary = {
   slug?: string;
 };
 
-export type Link = {
-  id: string;
-  organizationId: string;
-  teamId: string;
-  teamName?: string | null;
-  slug: string;
-  targetUrl: string;
-  redirectStatus: 301 | 302 | 307;
-  isActive: boolean;
-  title: string | null;
-  description: string | null;
-  createdBy: string | null;
-  updatedBy: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
+export type Link = LinkDto;
 
 export type Member = {
   id: string;
@@ -44,31 +31,13 @@ export type Invitation = {
   teamId?: string | null;
 };
 
-export type TeamMember = {
-  id: string;
-  userId: string;
-  name: string | null;
-  email: string | null;
-  createdAt: string | null;
-};
+export type TeamMember = TeamMemberDto;
 
 export type InvitationRole = "member" | "admin" | "owner";
 
-export type HistoryItem = {
-  id: string;
-  oldTargetUrl: string | null;
-  newTargetUrl: string;
-  changedBy: string | null;
-  changedAt: string;
-};
+export type HistoryItem = HistoryItemDto;
 
-export type AnalyticsSummary = {
-  totalClicks: number;
-  uniqueVisitorApproximation: number;
-  topCountries: Array<{ country: string | null; clicks: number }>;
-  topReferrers: Array<{ referer: string | null; clicks: number }>;
-  clicksByDay: Array<{ day: string; clicks: number }>;
-};
+export type AnalyticsSummary = AnalyticsSummaryDto;
 
 export type SelectedLinkFormValues = {
   targetUrl: string;
@@ -128,6 +97,7 @@ export const initialAnalytics: AnalyticsSummary = {
   topCountries: [],
   topReferrers: [],
   clicksByDay: [],
+  range: { from: "", to: "" },
 };
 
 export const readCollection = <T,>(value: unknown, keys: string[]): T[] => {

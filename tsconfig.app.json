@@ -17,5 +17,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/react-app"]
+  "include": ["src/react-app", "src/shared", "src/worker/openapi/schemas.ts"]
 }

@@ -9,6 +9,7 @@
   "include": [
     "worker-configuration.d.ts",
     "src/worker",
+    "src/shared",
     "tests/integration",
     "tests/unit"
   ]

@@ -6,16 +6,21 @@ export const sessionMiddleware = createMiddleware<{ Bindings: AppBindings; Varia
   async (c, next) => {
     // Environment is validated by envMiddleware before any route runs.
     const auth = createAuth(c.env);
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
-    const authSession = session?.session as (typeof session extends null ? never : {
-      id: string;
-      userId: string;
-      activeOrganizationId?: string | null;
-    }) | null | undefined;
+    const result = await auth.api.getSession({ headers: c.req.raw.headers });
+    const raw = result?.session;
+    const session = raw
+      ? {
+          id: raw.id,
+          userId: raw.userId,
+          expiresAt: raw.expiresAt ? new Date(raw.expiresAt).toISOString() : null,
+          activeOrganizationId: raw.activeOrganizationId ?? null,
+          activeTeamId: raw.activeTeamId ?? null,
+        }
+      : null;
 
-    c.set("session", authSession ?? null);
-    c.set("user", session?.user ?? null);
-    c.set("activeOrganizationId", authSession?.activeOrganizationId ?? null);
+    c.set("session", session);
+    c.set("user", result?.user ?? null);
+    c.set("activeOrganizationId", session?.activeOrganizationId ?? null);
 
     await next();
   },
