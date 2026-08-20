@@ -12,6 +12,9 @@ export default defineConfig({
     command: "pnpm db:migrate:local && ./node_modules/.bin/vite --host 127.0.0.1 --port 4173",
     env: {
       ...process.env,
+      // The Cloudflare Vite plugin only forwards process.env into the Worker
+      // when this flag is set (otherwise only wrangler vars / .dev.vars apply).
+      CLOUDFLARE_INCLUDE_PROCESS_ENV: "true",
       APP_URL: "http://127.0.0.1:4173",
       APP_NAME: "Snarvei",
       AUTH_SECRET:

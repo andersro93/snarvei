@@ -47,6 +47,9 @@ export const accounts = sqliteTable(
     id: text("id").primaryKey(),
     accountId: text("account_id").notNull(),
     providerId: text("provider_id").notNull(),
+    // Better Auth >= 1.7 scopes account identity by (issuer, accountId).
+    // Email/password accounts use the issuer "local:credential".
+    issuer: text("issuer").notNull(),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -62,7 +65,10 @@ export const accounts = sqliteTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [index("accounts_user_id_idx").on(table.userId)],
+  (table) => [
+    index("accounts_user_id_idx").on(table.userId),
+    uniqueIndex("accounts_issuer_account_id_unique").on(table.issuer, table.accountId),
+  ],
 );
 
 export const verifications = sqliteTable(
@@ -139,6 +145,8 @@ export const teams = sqliteTable(
     organizationId: text("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
+    // Maintained by Better Auth >= 1.7 (incremented/decremented on membership changes).
+    memberCount: integer("member_count").notNull().default(0),
     createdAt: timestampMs("created_at"),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).$onUpdate(() => new Date()),
   },
@@ -158,6 +166,9 @@ export const twoFactors = sqliteTable(
     secret: text("secret").notNull(),
     backupCodes: text("backup_codes").notNull(),
     verified: integer("verified", { mode: "boolean" }).default(false).notNull(),
+    // Better Auth >= 1.7 brute-force protection for TOTP/backup-code verification.
+    failedVerificationCount: integer("failed_verification_count").default(0),
+    lockedUntil: integer("locked_until", { mode: "timestamp_ms" }),
   },
   (table) => [index("two_factors_user_id_idx").on(table.userId), uniqueIndex("two_factors_user_unique").on(table.userId)],
 );
@@ -195,12 +206,16 @@ export const teamMembers = sqliteTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    // Better Auth >= 1.7 stores a hash of (teamId, userId); it falls back to the
+    // pair lookup when NULL, so existing rows need no backfill.
+    membershipKey: text("membership_key"),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`),
   },
   (table) => [
     index("team_members_team_id_idx").on(table.teamId),
     index("team_members_user_id_idx").on(table.userId),
     uniqueIndex("team_members_team_user_unique").on(table.teamId, table.userId),
+    uniqueIndex("team_members_membership_key_unique").on(table.membershipKey),
   ],
 );
 
