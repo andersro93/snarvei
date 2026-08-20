@@ -135,11 +135,46 @@ describe("link mutations", () => {
   it.each([
     ["missing targetUrl", { title: "x" }],
     ["invalid targetUrl", { targetUrl: "not a url" }],
+    ["javascript: targetUrl", { targetUrl: "javascript:alert(1)" }],
+    ["data: targetUrl", { targetUrl: "data:text/html,hi" }],
+    ["file: targetUrl", { targetUrl: "file:///etc/passwd" }],
+    ["targetUrl with credentials", { targetUrl: "https://user:pw@example.com/" }],
     ["unsupported redirect status", { targetUrl: "https://example.com", redirectStatus: 308 }],
+    ["overlong title", { targetUrl: "https://example.com", title: "x".repeat(121) }],
   ])("rejects create with %s (400)", async (_name, partial) => {
     const { owner, team } = await setupWorkspace();
     const response = await request(`${ORIGIN}/api/links`, jsonInit("POST", { teamId: team.id, ...partial }, owner.cookie));
     expect(response.status).toBe(400);
+  });
+
+  it("rejects retargeting to a non-http(s) URL (400) and keeps the old target", async () => {
+    const { owner, team } = await setupWorkspace();
+    const link = await createLink(owner, { teamId: team.id, targetUrl: "https://example.com/keep" });
+    const response = await request(`${ORIGIN}/api/links/${link.id}`, jsonInit("PATCH", { targetUrl: "javascript:alert(1)" }, owner.cookie));
+    expect(response.status).toBe(400);
+    expect((await request(`${ORIGIN}/l/${link.slug}`)).headers.get("location")).toBe("https://example.com/keep");
+  });
+
+  it("treats blank title/description as absent on create and as 'clear' on update", async () => {
+    const { owner, team } = await setupWorkspace();
+    const created = await createLink(owner, { teamId: team.id, targetUrl: "https://example.com/d", title: "  ", description: "" });
+    expect(created.title).toBeNull();
+    expect(created.description).toBeNull();
+
+    const titled = (await (
+      await request(`${ORIGIN}/api/links/${created.id}`, jsonInit("PATCH", { title: "Campaign", description: "Desc" }, owner.cookie))
+    ).json()) as { title: string | null; description: string | null };
+    expect(titled).toMatchObject({ title: "Campaign", description: "Desc" });
+
+    const cleared = (await (
+      await request(`${ORIGIN}/api/links/${created.id}`, jsonInit("PATCH", { title: "", description: "   " }, owner.cookie))
+    ).json()) as { title: string | null; description: string | null };
+    expect(cleared).toMatchObject({ title: null, description: null });
+
+    const untouched = (await (
+      await request(`${ORIGIN}/api/links/${created.id}`, jsonInit("PATCH", { redirectStatus: 307 }, owner.cookie))
+    ).json()) as { title: string | null; redirectStatus: number };
+    expect(untouched).toMatchObject({ title: null, redirectStatus: 307 });
   });
 
   it("returns 404 for an unknown link id", async () => {
