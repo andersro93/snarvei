@@ -203,6 +203,12 @@ That means the initial implementation should preserve the decisions documented h
 2. A Workers Rate Limiting binding (`RATE_LIMIT` in `wrangler.jsonc`) additionally limits `/l/*` redirects and `/api/auth/*` per client IP at the edge (429 + `Retry-After`).
 3. Client IPs are read from `cf-connecting-ip` only; `x-forwarded-for` is ignored because it is spoofable.
 
+## Observability
+
+1. The Worker logs one JSON line per event (`time`, `level`, `event`, plus fields such as `rayId`, `userId`, `path`) via `src/worker/lib/log.ts`; unexpected errors are logged as `request.error` and masked in the response. Never log secrets or links.
+2. `GET /api/health` runs a real D1 query and returns `{ ok, service, version, checks }` with `200`, or `503` + `ok: false` when a check fails (`Cache-Control: no-store`). Point an uptime monitor at it. `version` is the deployed git SHA (`APP_VERSION`, passed by the deploy workflows) or `dev`.
+3. Workers Logs are enabled in `wrangler.jsonc` (`observability.enabled`); filter by `event` (e.g. `env.invalid`, `email.not_configured`, `health.degraded`).
+
 ## CI/CD
 
 GitHub Actions is used for CI/CD.

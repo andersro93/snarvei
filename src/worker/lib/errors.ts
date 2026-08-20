@@ -1,6 +1,7 @@
 import type { Hook } from "@hono/zod-openapi";
 import type { Context, ErrorHandler, NotFoundHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
+import { log } from "./log";
 import type { AppBindings, AppVariables } from "./types";
 
 type AppEnv = { Bindings: AppBindings; Variables: AppVariables };
@@ -27,17 +28,13 @@ export const onError: ErrorHandler<AppEnv> = (error, c) => {
     return errorJson(c, status, error.message);
   }
 
-  console.error(
-    JSON.stringify({
-      level: "error",
-      event: "request.error",
-      method: c.req.method,
-      path: c.req.path,
-      rayId: c.req.header("cf-ray") ?? null,
-      userId: c.get("user")?.id ?? null,
-      error: { name: error.name, message: error.message, stack: error.stack },
-    }),
-  );
+  log.error("request.error", {
+    method: c.req.method,
+    path: c.req.path,
+    rayId: c.req.header("cf-ray") ?? null,
+    userId: c.get("user")?.id ?? null,
+    error,
+  });
   return errorJson(c, 500);
 };
 

@@ -6,6 +6,8 @@
  * development only.
  */
 
+import { log } from "./log";
+
 export type EmailMessage = {
   to: string;
   subject: string;
@@ -46,20 +48,16 @@ export const createEmailSender = (env: EmailEnv): EmailSender => {
 
   if (env.EMAIL_DEV_LOG === "true") {
     return async (message) => {
-      console.log(JSON.stringify({ level: "info", event: "email.dev_log", to: message.to, subject: message.subject, text: message.text }));
+      log.info("email.dev_log", { to: message.to, subject: message.subject, text: message.text });
     };
   }
 
   return async (message) => {
-    console.warn(
-      JSON.stringify({
-        level: "warn",
-        event: "email.not_configured",
-        message: "No email provider configured (set RESEND_API_KEY and EMAIL_FROM); message dropped",
-        to: message.to,
-        subject: message.subject,
-      }),
-    );
+    log.warn("email.not_configured", {
+      message: "No email provider configured (set RESEND_API_KEY and EMAIL_FROM); message dropped",
+      to: message.to,
+      subject: message.subject,
+    });
   };
 };
 

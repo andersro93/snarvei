@@ -204,7 +204,7 @@ describe("app", () => {
   it("serves a health endpoint", async () => {
     const response = await request("http://localhost/api/health");
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true, service: "snarvei" });
+    expect(await response.json()).toMatchObject({ ok: true, service: "snarvei", checks: { database: "ok" } });
   });
 
   it("serves scalar docs page", async () => {

@@ -69,6 +69,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --env dev
+          command: deploy --env dev --var APP_VERSION:${{ github.sha }}
         env:
           CLOUDFLARE_ENV: dev
