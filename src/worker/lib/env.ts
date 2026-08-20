@@ -18,6 +18,9 @@ export function validateEnv(env: Partial<AppBindings> | undefined): asserts env 
   if (!env?.DB) {
     throw new EnvValidationError("DB binding is missing");
   }
+  if (!env.RATE_LIMIT) {
+    throw new EnvValidationError("RATE_LIMIT binding is missing");
+  }
   if (!env.AUTH_SECRET || env.AUTH_SECRET.length < MIN_SECRET_LENGTH) {
     throw new EnvValidationError(`AUTH_SECRET is missing or shorter than ${MIN_SECRET_LENGTH} characters`);
   }

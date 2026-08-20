@@ -5,6 +5,7 @@ import { clickEvents, links } from "./db/schema";
 import { createAuth } from "./lib/auth";
 import { hashIp } from "./lib/crypto";
 import { envMiddleware, ipHashPepper } from "./lib/env";
+import { rateLimitMiddleware } from "./lib/rate-limit";
 import { getDb } from "./lib/db";
 import { renderScalarPage } from "./lib/scalar";
 import type { AppBindings, AppVariables } from "./lib/types";
@@ -51,6 +52,8 @@ export const createApp = () => {
   const app = new OpenAPIHono<{ Bindings: AppBindings; Variables: AppVariables }>();
 
   app.use("*", envMiddleware);
+  app.use("/l/*", rateLimitMiddleware("redirect"));
+  app.use("/api/auth/*", rateLimitMiddleware("auth"));
   app.use("/api/me", sessionMiddleware);
   app.use("/api/me/*", sessionMiddleware);
   app.use("/api/organizations/*", sessionMiddleware);

@@ -2,11 +2,13 @@ import { env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../src/worker/app";
 import type { AppBindings } from "../../src/worker/lib/types";
+import { permissiveRateLimit, randomIp } from "./support/api";
 
 const app = createApp();
 
 const testEnv: AppBindings = {
   DB: env.DB,
+  RATE_LIMIT: permissiveRateLimit,
   PROFILE_IMAGES: {} as R2Bucket,
   AUTH_SECRET: "6b2bb1c1f08b4dcb8edc6fe6d64ed7135ecfa4012d3224d4203f3a1c4a2727b1",
   APP_URL: "http://localhost:8787",
@@ -57,14 +59,15 @@ type ProtectedRequestCase = {
 
 const signUpAndGetSession = async (): Promise<AuthSession> => {
   const suffix = crypto.randomUUID();
-  const response = await request(
-    "http://localhost/api/auth/sign-up/email",
-    jsonRequest("POST", {
-      name: `User ${suffix}`,
-      email: `user-${suffix}@example.com`,
-      password: "Password123!",
-    }),
-  );
+  const init = jsonRequest("POST", {
+    name: `User ${suffix}`,
+    email: `user-${suffix}@example.com`,
+    password: "Password123!",
+  });
+  const response = await request("http://localhost/api/auth/sign-up/email", {
+    ...init,
+    headers: { ...(init.headers as Record<string, string>), "cf-connecting-ip": randomIp() },
+  });
 
   expect(response.status).toBeLessThan(400);
   const cookie = extractSessionCookie(response);

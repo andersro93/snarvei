@@ -5,8 +5,12 @@ import type { AppBindings } from "../../../src/worker/lib/types";
 
 export const ORIGIN = "http://localhost";
 
+/** Permissive stand-in for the Workers Rate Limiting binding so unrelated tests never hit 429. */
+export const permissiveRateLimit: RateLimit = { limit: async () => ({ success: true }) };
+
 export const testEnv: AppBindings = {
   DB: env.DB,
+  RATE_LIMIT: permissiveRateLimit,
   PROFILE_IMAGES: {} as R2Bucket,
   AUTH_SECRET: "6b2bb1c1f08b4dcb8edc6fe6d64ed7135ecfa4012d3224d4203f3a1c4a2727b1",
   APP_URL: "http://localhost:8787",
@@ -23,15 +27,23 @@ export const request = async (input: string | Request, init?: RequestInit) => {
   return response;
 };
 
-export const jsonInit = (method: string, body?: unknown, cookie?: string): RequestInit => ({
-  method,
-  headers: {
-    "content-type": "application/json",
-    origin: ORIGIN,
-    ...(cookie ? { cookie } : {}),
-  },
-  ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-});
+/** Each test user gets its own client IP so per-IP rate limits never bleed between tests. */
+export const randomIp = () => `10.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 254) + 1}`;
+
+export const jsonInit = (method: string, body?: unknown, as?: TestUser | string): RequestInit => {
+  const cookie = typeof as === "string" ? as : as?.cookie;
+  const ip = typeof as === "object" ? as.ip : undefined;
+  return {
+    method,
+    headers: {
+      "content-type": "application/json",
+      origin: ORIGIN,
+      ...(cookie ? { cookie } : {}),
+      ...(ip ? { "cf-connecting-ip": ip } : {}),
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  };
+};
 
 export const extractSessionCookie = (response: Response) => {
   const match = response.headers.get("set-cookie")?.match(/better-auth\.session_token=[^;]+/);
@@ -41,26 +53,27 @@ export const extractSessionCookie = (response: Response) => {
   return match[0];
 };
 
-export type TestUser = { cookie: string; userId: string; email: string };
+export type TestUser = { cookie: string; userId: string; email: string; ip: string };
 
 export const signUp = async (): Promise<TestUser> => {
   const suffix = crypto.randomUUID();
   const email = `user-${suffix}@example.com`;
-  const response = await request(
-    `${ORIGIN}/api/auth/sign-up/email`,
-    jsonInit("POST", { name: `User ${suffix}`, email, password: "Password123!" }),
-  );
+  const ip = randomIp();
+  const response = await request(`${ORIGIN}/api/auth/sign-up/email`, {
+    ...jsonInit("POST", { name: `User ${suffix}`, email, password: "Password123!" }),
+    headers: { "content-type": "application/json", origin: ORIGIN, "cf-connecting-ip": ip },
+  });
   expect(response.status, await response.clone().text()).toBeLessThan(400);
   const cookie = extractSessionCookie(response);
   const me = (await (await request(`${ORIGIN}/api/me`, { headers: { cookie } })).json()) as { user: { id: string } };
-  return { cookie, userId: me.user.id, email };
+  return { cookie, userId: me.user.id, email, ip };
 };
 
 export const createOrganization = async (user: TestUser) => {
   const suffix = crypto.randomUUID().slice(0, 8);
   const response = await request(
     `${ORIGIN}/api/auth/organization/create`,
-    jsonInit("POST", { name: `Org ${suffix}`, slug: `org-${suffix}` }, user.cookie),
+    jsonInit("POST", { name: `Org ${suffix}`, slug: `org-${suffix}` }, user),
   );
   expect(response.status, await response.clone().text()).toBe(200);
   return (await response.json()) as { id: string; slug: string };
@@ -69,7 +82,7 @@ export const createOrganization = async (user: TestUser) => {
 export const createTeam = async (user: TestUser, organizationId: string, name = "Growth") => {
   const response = await request(
     `${ORIGIN}/api/auth/organization/create-team`,
-    jsonInit("POST", { name, organizationId }, user.cookie),
+    jsonInit("POST", { name, organizationId }, user),
   );
   expect(response.status, await response.clone().text()).toBe(200);
   return (await response.json()) as { id: string };
@@ -89,7 +102,7 @@ export const createLink = async (
   user: TestUser,
   body: { teamId: string; targetUrl: string; redirectStatus?: 301 | 302 | 307; title?: string; description?: string },
 ) => {
-  const response = await request(`${ORIGIN}/api/links`, jsonInit("POST", body, user.cookie));
+  const response = await request(`${ORIGIN}/api/links`, jsonInit("POST", body, user));
   expect(response.status, await response.clone().text()).toBe(201);
   return (await response.json()) as LinkDto;
 };

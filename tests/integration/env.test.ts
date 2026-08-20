@@ -5,6 +5,7 @@ import type { AppBindings } from "../../src/worker/lib/types";
 
 const validEnv: AppBindings = {
   DB: env.DB,
+  RATE_LIMIT: { limit: async () => ({ success: true }) } as RateLimit,
   PROFILE_IMAGES: {} as R2Bucket,
   AUTH_SECRET: "6b2bb1c1f08b4dcb8edc6fe6d64ed7135ecfa4012d3224d4203f3a1c4a2727b1",
   APP_URL: "http://localhost:8787",
@@ -20,6 +21,7 @@ describe("runtime configuration validation", () => {
     ["APP_URL missing", { APP_URL: undefined }],
     ["APP_URL not a URL", { APP_URL: "not-a-url" }],
     ["DB binding missing", { DB: undefined as unknown as D1Database }],
+    ["RATE_LIMIT binding missing", { RATE_LIMIT: undefined as unknown as RateLimit }],
   ];
 
   for (const [name, overrides] of misconfigurations) {
