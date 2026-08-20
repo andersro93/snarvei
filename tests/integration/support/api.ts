@@ -28,7 +28,8 @@ export const request = async (input: string | Request, init?: RequestInit) => {
 };
 
 /** Each test user gets its own client IP so per-IP rate limits never bleed between tests. */
-export const randomIp = () => `10.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 254) + 1}`;
+export const randomIp = () =>
+  `10.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 254) + 1}`;
 
 export const jsonInit = (method: string, body?: unknown, as?: TestUser | string): RequestInit => {
   const cookie = typeof as === "string" ? as : as?.cookie;
@@ -80,10 +81,7 @@ export const createOrganization = async (user: TestUser) => {
 };
 
 export const createTeam = async (user: TestUser, organizationId: string, name = "Growth") => {
-  const response = await request(
-    `${ORIGIN}/api/auth/organization/create-team`,
-    jsonInit("POST", { name, organizationId }, user),
-  );
+  const response = await request(`${ORIGIN}/api/auth/organization/create-team`, jsonInit("POST", { name, organizationId }, user));
   expect(response.status, await response.clone().text()).toBe(200);
   return (await response.json()) as { id: string };
 };

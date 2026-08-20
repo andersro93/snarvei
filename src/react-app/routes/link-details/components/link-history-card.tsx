@@ -1,10 +1,7 @@
 import { Alert, Card, CardContent, CircularProgress, Paper, Stack, Typography } from "@mui/material";
 import type { HistoryItem } from "../../../types";
 
-export function LinkHistoryCard(props: {
-  history: HistoryItem[];
-  loading: boolean;
-}) {
+export function LinkHistoryCard(props: { history: HistoryItem[]; loading: boolean }) {
   return (
     <Card sx={{ flex: 1, border: "1px solid rgba(255,255,255,0.08)" }}>
       <CardContent>

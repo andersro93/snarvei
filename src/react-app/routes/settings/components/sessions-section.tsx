@@ -32,7 +32,11 @@ export function SessionsSection(
   },
 ) {
   return (
-    <SectionCard title="Active sessions" description="Review current logins and revoke sessions that should no longer have access." icon={<ShieldOutlinedIcon />}>
+    <SectionCard
+      title="Active sessions"
+      description="Review current logins and revoke sessions that should no longer have access."
+      icon={<ShieldOutlinedIcon />}
+    >
       <Stack spacing={2}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ justifyContent: "space-between", alignItems: { sm: "center" } }}>
           <Typography color="text.secondary">Only active sessions are shown. Revoked sessions disappear from this list.</Typography>
@@ -61,7 +65,15 @@ export function SessionsSection(
             return (
               <ListItem
                 key={authSession.id}
-                sx={{ px: 2, py: 1.5, border: "1px solid rgba(255,255,255,0.08)", borderRadius: 3, display: "flex", gap: 2, alignItems: "center" }}
+                sx={{
+                  px: 2,
+                  py: 1.5,
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 3,
+                  display: "flex",
+                  gap: 2,
+                  alignItems: "center",
+                }}
                 secondaryAction={
                   <Button
                     color="inherit"

@@ -5,7 +5,7 @@ import { clickEvents, links } from "../../src/worker/db/schema";
 const indexColumns = (table: Parameters<typeof getTableConfig>[0]) =>
   getTableConfig(table).indexes.map((index) => ({
     name: index.config.name,
-    columns: index.config.columns.map((column) => ("name" in column ? column.name : String(column))),
+    columns: index.config.columns.map((column) => ("name" in column ? String(column.name) : "<expression>")),
   }));
 
 describe("analytics-critical indexes", () => {

@@ -18,9 +18,7 @@ export default defineConfig({
       CLOUDFLARE_INCLUDE_PROCESS_ENV: "true",
       APP_URL: "http://127.0.0.1:4173",
       APP_NAME: "Snarvei",
-      AUTH_SECRET:
-        process.env.AUTH_SECRET ??
-        "4d9ae7e8767de815a6754b18b6fc8c6127ec4ceb3d8f4d64a577f1e3cf6b4ef2",
+      AUTH_SECRET: process.env.AUTH_SECRET ?? "4d9ae7e8767de815a6754b18b6fc8c6127ec4ceb3d8f4d64a577f1e3cf6b4ef2",
     },
     url: "http://127.0.0.1:4173",
     reuseExistingServer: false,

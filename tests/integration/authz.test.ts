@@ -37,7 +37,6 @@ const extractSessionCookie = (response: Response) => {
 
 const createId = (prefix: string) => `${prefix}-${crypto.randomUUID()}`;
 
-
 type AuthSession = {
   cookie: string;
   userId: string;
@@ -96,65 +95,77 @@ const seedProtectedFixture = async (userId: string): Promise<ProtectedFixture> =
   const otherLinkId = createId("link");
 
   await env.DB.batch([
-    env.DB
-      .prepare("INSERT INTO organizations (id, name, slug, created_at) VALUES (?, ?, ?, ?)")
-      .bind(organizationId, `Org ${organizationId}`, `slug-${organizationId}`, now),
-    env.DB
-      .prepare("INSERT INTO members (id, organization_id, user_id, role, created_at) VALUES (?, ?, ?, ?, ?)")
-      .bind(createId("member"), organizationId, userId, "member", now),
-    env.DB
-      .prepare("INSERT INTO teams (id, name, organization_id, created_at) VALUES (?, ?, ?, ?)")
-      .bind(teamId, `Team ${teamId}`, organizationId, now),
-    env.DB
-      .prepare("INSERT INTO teams (id, name, organization_id, created_at) VALUES (?, ?, ?, ?)")
-      .bind(otherTeamId, `Team ${otherTeamId}`, organizationId, now),
-    env.DB
-      .prepare("INSERT INTO team_members (id, team_id, user_id, created_at) VALUES (?, ?, ?, ?)")
-      .bind(createId("team-member"), teamId, userId, now),
-    env.DB
-      .prepare(
-        `INSERT INTO links (
+    env.DB.prepare("INSERT INTO organizations (id, name, slug, created_at) VALUES (?, ?, ?, ?)").bind(
+      organizationId,
+      `Org ${organizationId}`,
+      `slug-${organizationId}`,
+      now,
+    ),
+    env.DB.prepare("INSERT INTO members (id, organization_id, user_id, role, created_at) VALUES (?, ?, ?, ?, ?)").bind(
+      createId("member"),
+      organizationId,
+      userId,
+      "member",
+      now,
+    ),
+    env.DB.prepare("INSERT INTO teams (id, name, organization_id, created_at) VALUES (?, ?, ?, ?)").bind(
+      teamId,
+      `Team ${teamId}`,
+      organizationId,
+      now,
+    ),
+    env.DB.prepare("INSERT INTO teams (id, name, organization_id, created_at) VALUES (?, ?, ?, ?)").bind(
+      otherTeamId,
+      `Team ${otherTeamId}`,
+      organizationId,
+      now,
+    ),
+    env.DB.prepare("INSERT INTO team_members (id, team_id, user_id, created_at) VALUES (?, ?, ?, ?)").bind(
+      createId("team-member"),
+      teamId,
+      userId,
+      now,
+    ),
+    env.DB.prepare(
+      `INSERT INTO links (
           id, organization_id, team_id, slug, target_url, redirect_status, is_active,
           title, description, created_by, updated_by, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      )
-      .bind(
-        linkId,
-        organizationId,
-        teamId,
-        `slug-${linkId}`,
-        "https://example.com/original",
-        302,
-        1,
-        "Seed link",
-        "Seeded for authz tests",
-        userId,
-        userId,
-        now,
-        now,
-      ),
-    env.DB
-      .prepare(
-        `INSERT INTO links (
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      linkId,
+      organizationId,
+      teamId,
+      `slug-${linkId}`,
+      "https://example.com/original",
+      302,
+      1,
+      "Seed link",
+      "Seeded for authz tests",
+      userId,
+      userId,
+      now,
+      now,
+    ),
+    env.DB.prepare(
+      `INSERT INTO links (
           id, organization_id, team_id, slug, target_url, redirect_status, is_active,
           title, description, created_by, updated_by, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      )
-      .bind(
-        otherLinkId,
-        organizationId,
-        otherTeamId,
-        `slug-${otherLinkId}`,
-        "https://example.com/other",
-        302,
-        1,
-        "Other seed link",
-        "Seeded for org-wide list tests",
-        userId,
-        userId,
-        now,
-        now,
-      ),
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      otherLinkId,
+      organizationId,
+      otherTeamId,
+      `slug-${otherLinkId}`,
+      "https://example.com/other",
+      302,
+      1,
+      "Other seed link",
+      "Seeded for org-wide list tests",
+      userId,
+      userId,
+      now,
+      now,
+    ),
   ]);
 
   return { organizationId, teamId, otherTeamId, linkId, otherLinkId };
@@ -237,9 +248,7 @@ describe("protected endpoint authorization", () => {
   ];
 
   for (const createCase of cases) {
-    it(
-      `${createCase({ organizationId: "org", teamId: "team", otherTeamId: "other-team", linkId: "link", otherLinkId: "other-link" }).name} returns 403 for a user outside the team`,
-      async () => {
+    it(`${createCase({ organizationId: "org", teamId: "team", otherTeamId: "other-team", linkId: "link", otherLinkId: "other-link" }).name} returns 403 for a user outside the team`, async () => {
       const owner = await signUpAndGetSession();
       const outsider = await signUpAndGetSession();
       const fixture = await seedProtectedFixture(owner.userId);
@@ -253,8 +262,7 @@ describe("protected endpoint authorization", () => {
       });
 
       expect(response.status).toBe(403);
-      },
-    );
+    });
   }
 });
 
@@ -285,12 +293,19 @@ describe("protected endpoint access for team members", () => {
     const now = Date.now();
 
     await env.DB.batch([
-      env.DB
-        .prepare("INSERT INTO members (id, organization_id, user_id, role, created_at) VALUES (?, ?, ?, ?, ?)")
-        .bind(createId("member"), fixture.organizationId, member.userId, "member", now),
-      env.DB
-        .prepare("INSERT INTO team_members (id, team_id, user_id, created_at) VALUES (?, ?, ?, ?)")
-        .bind(createId("team-member"), fixture.teamId, member.userId, now),
+      env.DB.prepare("INSERT INTO members (id, organization_id, user_id, role, created_at) VALUES (?, ?, ?, ?, ?)").bind(
+        createId("member"),
+        fixture.organizationId,
+        member.userId,
+        "member",
+        now,
+      ),
+      env.DB.prepare("INSERT INTO team_members (id, team_id, user_id, created_at) VALUES (?, ?, ?, ?)").bind(
+        createId("team-member"),
+        fixture.teamId,
+        member.userId,
+        now,
+      ),
     ]);
 
     const response = await request(`http://localhost/api/organizations/${fixture.organizationId}/links`, {
@@ -309,7 +324,9 @@ describe("protected endpoint access for team members", () => {
     const admin = await signUpAndGetSession();
     const fixture = await seedProtectedFixture(admin.userId);
 
-    await env.DB.prepare("UPDATE members SET role = ? WHERE organization_id = ? AND user_id = ?").bind("admin", fixture.organizationId, admin.userId).run();
+    await env.DB.prepare("UPDATE members SET role = ? WHERE organization_id = ? AND user_id = ?")
+      .bind("admin", fixture.organizationId, admin.userId)
+      .run();
 
     const response = await request(`http://localhost/api/organizations/${fixture.organizationId}/links`, {
       headers: { cookie: admin.cookie },

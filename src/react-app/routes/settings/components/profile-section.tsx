@@ -16,11 +16,7 @@ export function ProfileSection(
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   return (
-    <SectionCard
-      title="Profile"
-      description="Update your display name and private profile image."
-      icon={<AddPhotoAlternateOutlinedIcon />}
-    >
+    <SectionCard title="Profile" description="Update your display name and private profile image." icon={<AddPhotoAlternateOutlinedIcon />}>
       <Stack direction={{ xs: "column", md: "row" }} spacing={3} sx={{ alignItems: { md: "center" } }}>
         <Stack spacing={1.5} sx={{ alignItems: "center", minWidth: 160 }}>
           <Avatar src={props.session.user.image ?? undefined} sx={{ width: 88, height: 88, bgcolor: "primary.main", fontSize: 34 }}>
@@ -91,13 +87,18 @@ export function ProfileSection(
             slotProps={{ htmlInput: { "data-testid": "settings-name-input" } }}
           />
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { sm: "center" } }}>
-            <Chip label={props.session.user.emailVerified ? "Email verified" : "Email not verified"} color={props.session.user.emailVerified ? "success" : "warning"} />
+            <Chip
+              label={props.session.user.emailVerified ? "Email verified" : "Email not verified"}
+              color={props.session.user.emailVerified ? "success" : "warning"}
+            />
             <Typography color="text.secondary">Current email: {props.session.user.email}</Typography>
           </Stack>
           <Button
             variant="contained"
             sx={{ alignSelf: "flex-start" }}
-            disabled={!props.profileName.trim() || props.profileName.trim() === props.session.user.name || props.busyAction === "save-profile"}
+            disabled={
+              !props.profileName.trim() || props.profileName.trim() === props.session.user.name || props.busyAction === "save-profile"
+            }
             onClick={() =>
               void props.runAction("save-profile", async () => {
                 const result = await authClient.updateUser({ name: props.profileName.trim() });

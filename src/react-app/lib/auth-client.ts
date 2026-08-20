@@ -55,7 +55,11 @@ type SnarveiAuthClient = {
   revokeOtherSessions: () => ClientResult<unknown>;
   signIn: {
     email: (input: { email: string; password: string }) => ClientResult<unknown>;
-    passkey: (input?: { autoFill?: boolean; extensions?: Record<string, unknown>; returnWebAuthnResponse?: boolean }) => ClientResult<unknown>;
+    passkey: (input?: {
+      autoFill?: boolean;
+      extensions?: Record<string, unknown>;
+      returnWebAuthnResponse?: boolean;
+    }) => ClientResult<unknown>;
   };
   signUp: {
     email: (input: { name: string; email: string; password: string }) => ClientResult<unknown>;
@@ -90,12 +94,7 @@ type SnarveiAuthClient = {
     listTeams: (input: { query: { organizationId: string } }) => ClientResult<unknown>;
     listMembers: (input: { query: { organizationId: string } }) => ClientResult<unknown>;
     listInvitations: (input: { query: { organizationId: string } }) => ClientResult<unknown>;
-    inviteMember: (input: {
-      email: string;
-      role: string | string[];
-      organizationId: string;
-      teamId?: string;
-    }) => ClientResult<unknown>;
+    inviteMember: (input: { email: string; role: string | string[]; organizationId: string; teamId?: string }) => ClientResult<unknown>;
     cancelInvitation: (input: { invitationId: string }) => ClientResult<unknown>;
     getInvitation: (input: { query: { id: string } }) => ClientResult<InvitationDetails>;
     acceptInvitation: (input: { invitationId: string }) => ClientResult<unknown>;

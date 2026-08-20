@@ -164,7 +164,11 @@ export const teamMembersRoute = createRoute({
 
 /** Analytics window: defaults to the last 30 days; at most one year. */
 export const AnalyticsQuerySchema = z.object({
-  from: z.string().datetime({ offset: true }).optional().openapi({ description: "ISO timestamp, inclusive; defaults to 30 days before `to`" }),
+  from: z
+    .string()
+    .datetime({ offset: true })
+    .optional()
+    .openapi({ description: "ISO timestamp, inclusive; defaults to 30 days before `to`" }),
   to: z.string().datetime({ offset: true }).optional().openapi({ description: "ISO timestamp, exclusive; defaults to now" }),
 });
 
@@ -173,7 +177,13 @@ export const PAGE_SIZE_MAX = 500;
 
 /** Keyset pagination for newest-first lists. The next cursor is returned in the `X-Next-Cursor` response header. */
 export const ListQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(PAGE_SIZE_MAX).default(PAGE_SIZE_DEFAULT).openapi({ description: `Page size (1-${PAGE_SIZE_MAX}, default ${PAGE_SIZE_DEFAULT})` }),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(PAGE_SIZE_MAX)
+    .default(PAGE_SIZE_DEFAULT)
+    .openapi({ description: `Page size (1-${PAGE_SIZE_MAX}, default ${PAGE_SIZE_DEFAULT})` }),
   cursor: z.string().optional().openapi({ description: "Opaque cursor from the previous page's X-Next-Cursor header" }),
 });
 

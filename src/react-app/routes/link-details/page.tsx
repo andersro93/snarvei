@@ -12,7 +12,18 @@ import { LinkAnalyticsCard, LinkHistoryCard } from "./components";
 export function LinkDetailsPage() {
   const navigate = useNavigate();
   const params = useParams();
-  const { activeOrganization, analytics, appOrigin, deleteLink, getLinkById, history, loadingDetails, setSelectedLinkId, submitting, updateLink } = useWorkspace();
+  const {
+    activeOrganization,
+    analytics,
+    appOrigin,
+    deleteLink,
+    getLinkById,
+    history,
+    loadingDetails,
+    setSelectedLinkId,
+    submitting,
+    updateLink,
+  } = useWorkspace();
   const [editOpen, setEditOpen] = useState(false);
 
   const link = params.linkId ? getLinkById(params.linkId) : null;
@@ -80,7 +91,12 @@ export function LinkDetailsPage() {
               </Box>
               <Box sx={{ flex: 1 }}>
                 <Typography color="text.secondary">State</Typography>
-                <Chip size="small" label={link.isActive ? "Active" : "Inactive"} color={link.isActive ? "success" : "default"} sx={{ mt: 0.5 }} />
+                <Chip
+                  size="small"
+                  label={link.isActive ? "Active" : "Inactive"}
+                  color={link.isActive ? "success" : "default"}
+                  sx={{ mt: 0.5 }}
+                />
               </Box>
             </Stack>
           </Stack>
@@ -101,7 +117,7 @@ export function LinkDetailsPage() {
         onDelete={async () => {
           const deleted = await deleteLink(link.id);
           if (deleted) {
-            navigate(buildLinksPath(activeOrganization));
+            void navigate(buildLinksPath(activeOrganization));
           }
           return deleted;
         }}

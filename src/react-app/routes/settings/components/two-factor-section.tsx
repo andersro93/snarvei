@@ -21,10 +21,17 @@ export function TwoFactorSection(
   },
 ) {
   return (
-    <SectionCard title="Two-factor authentication" description="Enable TOTP, verify enrollment, and manage backup recovery codes." icon={<ShieldOutlinedIcon />}>
+    <SectionCard
+      title="Two-factor authentication"
+      description="Enable TOTP, verify enrollment, and manage backup recovery codes."
+      icon={<ShieldOutlinedIcon />}
+    >
       <Stack spacing={2.5}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { sm: "center" } }}>
-          <Chip label={props.session.user.twoFactorEnabled ? "Enabled" : "Not enabled"} color={props.session.user.twoFactorEnabled ? "success" : "default"} />
+          <Chip
+            label={props.session.user.twoFactorEnabled ? "Enabled" : "Not enabled"}
+            color={props.session.user.twoFactorEnabled ? "success" : "default"}
+          />
           <Typography color="text.secondary">
             {props.session.user.twoFactorEnabled
               ? "Use an authenticator app or backup codes to protect sign-in."
@@ -124,7 +131,9 @@ export function TwoFactorSection(
               <QRCode value={props.totpUri} size={160} />
             </Box>
             <Stack spacing={2} sx={{ flex: 1 }}>
-              <Typography color="text.secondary">Scan this QR code with your authenticator app, then verify the current code below.</Typography>
+              <Typography color="text.secondary">
+                Scan this QR code with your authenticator app, then verify the current code below.
+              </Typography>
               <TextField
                 label="Authenticator code"
                 value={props.twoFactorCode}

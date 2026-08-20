@@ -41,13 +41,15 @@ export function CreateOrganizationDialog({
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
           <TextField
-            label="Organization name" placeholder="Acme Inc"
+            label="Organization name"
+            placeholder="Acme Inc"
             value={name}
             onChange={(event) => setName(event.target.value)}
             slotProps={{ htmlInput: { "data-testid": "organization-name-input" } }}
           />
           <TextField
-            label="Organization slug" placeholder="acme"
+            label="Organization slug"
+            placeholder="acme"
             value={slug}
             onChange={(event) => setSlug(event.target.value)}
             slotProps={{ htmlInput: { "data-testid": "organization-slug-input" } }}
@@ -94,7 +96,8 @@ export function CreateTeamDialog({
       <DialogContent>
         <TextField
           sx={{ mt: 1 }}
-          label="Team name" placeholder="Marketing"
+          label="Team name"
+          placeholder="Marketing"
           value={name}
           onChange={(event) => setName(event.target.value)}
           slotProps={{ htmlInput: { "data-testid": "team-name-input" } }}
@@ -201,7 +204,8 @@ function CreateLinkDialogForm({
             </Select>
           </FormControl>
           <TextField
-            label="Target URL" placeholder="https://example.com/landing-page"
+            label="Target URL"
+            placeholder="https://example.com/landing-page"
             value={targetUrl}
             onChange={(event) => setTargetUrl(event.target.value)}
             slotProps={{ htmlInput: { "data-testid": "create-link-target-input" } }}
@@ -226,7 +230,7 @@ function CreateLinkDialogForm({
               labelId="create-link-status-label"
               label="Redirect status"
               value={redirectStatus}
-              onChange={(event) => setRedirectStatus(event.target.value as 301 | 302 | 307)}
+              onChange={(event) => setRedirectStatus(event.target.value)}
             >
               <MenuItem value={302}>302 — temporary (default)</MenuItem>
               <MenuItem value={307}>307 — temporary, preserves request method</MenuItem>
@@ -279,14 +283,15 @@ export function InviteMemberDialog({
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
           <TextField
-            label="Invite email" placeholder="colleague@example.com"
+            label="Invite email"
+            placeholder="colleague@example.com"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             slotProps={{ htmlInput: { "data-testid": "invite-email-input" } }}
           />
           <FormControl>
             <InputLabel id="invite-role-label">Role</InputLabel>
-            <Select labelId="invite-role-label" label="Role" value={role} onChange={(event) => setRole(event.target.value as InvitationRole)}>
+            <Select labelId="invite-role-label" label="Role" value={role} onChange={(event) => setRole(event.target.value)}>
               <MenuItem value="member">member</MenuItem>
               <MenuItem value="admin">admin</MenuItem>
               <MenuItem value="owner">owner</MenuItem>
@@ -348,7 +353,17 @@ export function EditLinkDialog({
   onSubmit: (values: SelectedLinkFormValues) => Promise<boolean>;
   onDelete: () => Promise<boolean>;
 }) {
-  return <EditLinkDialogForm key={`${link.id}-${link.updatedAt}-${open}`} open={open} link={link} submitting={submitting} onClose={onClose} onSubmit={onSubmit} onDelete={onDelete} />;
+  return (
+    <EditLinkDialogForm
+      key={`${link.id}-${link.updatedAt}-${open}`}
+      open={open}
+      link={link}
+      submitting={submitting}
+      onClose={onClose}
+      onSubmit={onSubmit}
+      onDelete={onDelete}
+    />
+  );
 }
 
 function EditLinkDialogForm({
@@ -403,7 +418,7 @@ function EditLinkDialogForm({
               labelId="selected-link-status-label"
               label="Redirect status"
               value={redirectStatus}
-              onChange={(event) => setRedirectStatus(event.target.value as 301 | 302 | 307)}
+              onChange={(event) => setRedirectStatus(event.target.value)}
             >
               <MenuItem value={302}>302 — temporary (default)</MenuItem>
               <MenuItem value={307}>307 — temporary, preserves request method</MenuItem>
@@ -500,4 +515,3 @@ export function CopyButton({ value }: { value: string }) {
     </Stack>
   );
 }
-

@@ -54,7 +54,10 @@ describe("API error contract", () => {
     vi.spyOn(crypto, "randomUUID").mockImplementationOnce(() => {
       throw new Error("simulated internal failure with secret details");
     });
-    const response = await request(`${ORIGIN}/api/links`, jsonInit("POST", { teamId: team.id, targetUrl: "https://example.com/boom" }, owner));
+    const response = await request(
+      `${ORIGIN}/api/links`,
+      jsonInit("POST", { teamId: team.id, targetUrl: "https://example.com/boom" }, owner),
+    );
     expect(response.status).toBe(500);
     const body = await readError(response);
     expect(body).toEqual({ error: "Internal Server Error" });

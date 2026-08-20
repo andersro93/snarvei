@@ -59,8 +59,7 @@ const selectLinkWithTeam = (db: ReturnType<typeof getDb>, linkId: string) =>
 const MAX_SLUG_ATTEMPTS = 10;
 
 /** D1 reports unique-index violations as "UNIQUE constraint failed: <table>.<column>". */
-const isSlugCollision = (error: unknown) =>
-  error instanceof Error && /UNIQUE constraint failed: links\.slug/.test(error.message);
+const isSlugCollision = (error: unknown) => error instanceof Error && /UNIQUE constraint failed: links\.slug/.test(error.message);
 
 /** Keyset condition for newest-first link pages: rows strictly after the cursor. */
 const linksAfter = (after: { at: number; id: string } | null) =>
@@ -88,21 +87,21 @@ const resolveAnalyticsRange = (query: { from?: string; to?: string }) => {
 
 /** Columns returned for a link (joined with its team name). */
 const linkSelection = {
-        id: links.id,
-        organizationId: links.organizationId,
-        teamId: links.teamId,
-        teamName: teams.name,
-        slug: links.slug,
-        targetUrl: links.targetUrl,
-        redirectStatus: links.redirectStatus,
-        isActive: links.isActive,
-        title: links.title,
-        description: links.description,
-        createdBy: links.createdBy,
-        updatedBy: links.updatedBy,
-        createdAt: links.createdAt,
-        updatedAt: links.updatedAt,
-      };
+  id: links.id,
+  organizationId: links.organizationId,
+  teamId: links.teamId,
+  teamName: teams.name,
+  slug: links.slug,
+  targetUrl: links.targetUrl,
+  redirectStatus: links.redirectStatus,
+  isActive: links.isActive,
+  title: links.title,
+  description: links.description,
+  createdBy: links.createdBy,
+  updatedBy: links.updatedBy,
+  createdAt: links.createdAt,
+  updatedAt: links.updatedAt,
+};
 
 export const registerLinkRoutes = (app: AppRoute) => {
   app.openapi(linkListRoute, async (c) => {
@@ -134,10 +133,7 @@ export const registerLinkRoutes = (app: AppRoute) => {
     const db = getDb(c);
     const visibleTeamIds = await getAccessibleTeamIds(c, organizationId);
 
-    const baseQuery = db
-      .select(linkSelection)
-      .from(links)
-      .innerJoin(teams, eq(teams.id, links.teamId));
+    const baseQuery = db.select(linkSelection).from(links).innerJoin(teams, eq(teams.id, links.teamId));
 
     const respond = (rows: Awaited<typeof baseQuery>) => {
       const page = paginate(rows, limit, (row) => ({ at: row.createdAt.getTime(), id: row.id }));

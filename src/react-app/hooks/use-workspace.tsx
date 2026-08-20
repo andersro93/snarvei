@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { authClient } from "../lib/auth-client";
-import type { AnalyticsSummary, AppMessage, HistoryItem, Invitation, InvitationRole, Link, Member, OrganizationSummary, SelectedLinkFormValues, SessionData, Team } from "../types";
+import type {
+  AnalyticsSummary,
+  AppMessage,
+  HistoryItem,
+  Invitation,
+  InvitationRole,
+  Link,
+  Member,
+  OrganizationSummary,
+  SelectedLinkFormValues,
+  SessionData,
+  Team,
+} from "../types";
 import { initialAnalytics, readCollection, readErrorMessage } from "../types";
 import { WorkspaceContext, type WorkspaceContextValue } from "./workspace-context";
 
@@ -42,7 +54,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const appOrigin = typeof window === "undefined" ? "http://localhost:8787" : window.location.origin;
   const organizations = useMemo(() => (organizationsQuery.data ?? []) as OrganizationSummary[], [organizationsQuery.data]);
-  const activeOrganizationFromClient = activeOrganizationQuery.data as OrganizationSummary | null | undefined;
+  const activeOrganizationFromClient = activeOrganizationQuery.data;
 
   const activeOrganizationId = useMemo(() => {
     if (!session) {
@@ -81,7 +93,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
     return visibleTeams[0]?.id ?? null;
   }, [activeOrganizationId, activeTeamId, session, visibleTeams]);
-
 
   const visibleMembers = useMemo(
     () => (activeOrganizationId && loadedOrganizationId === activeOrganizationId ? members : []),
@@ -146,7 +157,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     if (teamsResult.status === "fulfilled") {
       const nextTeams = readCollection<Team>(teamsResult.value.data, ["teams", "data"]);
       setTeams(nextTeams);
-      setActiveTeamId((current) => (current && nextTeams.some((team) => team.id === current) ? current : nextTeams[0]?.id ?? null));
+      setActiveTeamId((current) => (current && nextTeams.some((team) => team.id === current) ? current : (nextTeams[0]?.id ?? null)));
     } else {
       setTeams([]);
       if (!options?.silent) {
@@ -350,7 +361,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     await refreshOrganizations({ silent: true });
     const nextOrganizations = (organizationsQuery.data ?? []) as OrganizationSummary[];
     const createdOrganizationId =
-      result.data?.id ?? nextOrganizations.find((organization) => organization.slug === input.slug || organization.name === input.name)?.id ?? null;
+      result.data?.id ??
+      nextOrganizations.find((organization) => organization.slug === input.slug || organization.name === input.name)?.id ??
+      null;
 
     if (createdOrganizationId) {
       await switchOrganization(createdOrganizationId);

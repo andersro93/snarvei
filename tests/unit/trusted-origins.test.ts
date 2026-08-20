@@ -6,11 +6,17 @@ const origins = async (baseUrl: string, requestUrl: string, originHeader?: strin
 
 describe("trusted origins", () => {
   it("trusts only the configured app origin in production, even when served on another host", async () => {
-    expect(await origins("https://snarvei.example", "https://snarvei.example/api/auth/sign-in/email", "https://snarvei.example")).toEqual(["https://snarvei.example"]);
-    // e.g. the workers.dev or a version-preview hostname: not trusted
-    expect(await origins("https://snarvei.example", "https://snarvei.andersro93.workers.dev/api/auth/sign-in/email", "https://snarvei.andersro93.workers.dev")).toEqual([
+    expect(await origins("https://snarvei.example", "https://snarvei.example/api/auth/sign-in/email", "https://snarvei.example")).toEqual([
       "https://snarvei.example",
     ]);
+    // e.g. the workers.dev or a version-preview hostname: not trusted
+    expect(
+      await origins(
+        "https://snarvei.example",
+        "https://snarvei.andersro93.workers.dev/api/auth/sign-in/email",
+        "https://snarvei.andersro93.workers.dev",
+      ),
+    ).toEqual(["https://snarvei.example"]);
   });
 
   it("additionally trusts loopback origins for local development and e2e when the app itself runs on loopback", async () => {
@@ -23,7 +29,9 @@ describe("trusted origins", () => {
       "http://localhost:5173",
     ]);
     // but never a non-loopback origin, even in dev
-    expect(await origins("http://localhost:8787", "http://evil.example/api/auth/sign-in/email", "http://evil.example")).toEqual(["http://localhost:8787"]);
+    expect(await origins("http://localhost:8787", "http://evil.example/api/auth/sign-in/email", "http://evil.example")).toEqual([
+      "http://localhost:8787",
+    ]);
   });
 
   it("returns the base origin when no request is available", async () => {

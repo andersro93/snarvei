@@ -52,7 +52,6 @@ type AuthInstance = {
 const createInviteLink = (baseUrl: string, invitationId: string) =>
   `${baseUrl.replace(/\/$/, "")}/app/invitations/${encodeURIComponent(invitationId)}`;
 
-
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 const isLoopbackOrigin = (origin: string) => {
   try {

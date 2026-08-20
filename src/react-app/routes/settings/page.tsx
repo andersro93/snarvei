@@ -1,14 +1,7 @@
 import { Button, Divider, Stack, Typography } from "@mui/material";
 import { useWorkspace } from "../../hooks/use-workspace-context";
 import { useSettingsState } from "./hooks/use-settings-state";
-import {
-  EmailSection,
-  PasskeysSection,
-  PasswordSection,
-  ProfileSection,
-  SessionsSection,
-  TwoFactorSection,
-} from "./components";
+import { EmailSection, PasskeysSection, PasswordSection, ProfileSection, SessionsSection, TwoFactorSection } from "./components";
 
 export function SettingsPage() {
   const { refreshSessionState, session, setMessage, signOut } = useWorkspace();
@@ -24,9 +17,7 @@ export function SettingsPage() {
         <Typography variant="h3" sx={{ fontWeight: 900 }}>
           Your settings
         </Typography>
-        <Typography color="text.secondary">
-          Manage your profile, security settings, active logins, and passkeys.
-        </Typography>
+        <Typography color="text.secondary">Manage your profile, security settings, active logins, and passkeys.</Typography>
       </Stack>
 
       <ProfileSection

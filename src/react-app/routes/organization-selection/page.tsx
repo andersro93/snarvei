@@ -8,7 +8,8 @@ import type { OrganizationSummary } from "../../types";
 
 export function OrganizationSelectionPage() {
   const navigate = useNavigate();
-  const { activeOrganizationId, createOrganization, loadingOrganizations, organizations, session, submitting, switchOrganization } = useWorkspace();
+  const { activeOrganizationId, createOrganization, loadingOrganizations, organizations, session, submitting, switchOrganization } =
+    useWorkspace();
   const [createOrganizationOpen, setCreateOrganizationOpen] = useState(false);
 
   if (!session) {
@@ -33,7 +34,8 @@ export function OrganizationSelectionPage() {
               Choose your organization
             </Typography>
             <Typography color="text.secondary" sx={{ mt: 1 }}>
-              Pick the workspace you want to manage. If you do not have one yet, create an organization now or wait for an invitation from an admin.
+              Pick the workspace you want to manage. If you do not have one yet, create an organization now or wait for an invitation from
+              an admin.
             </Typography>
           </Box>
           {loadingOrganizations ? <CircularProgress /> : null}
@@ -41,7 +43,11 @@ export function OrganizationSelectionPage() {
             <Stack spacing={2}>
               {organizations.map((organization: OrganizationSummary) => (
                 <Paper key={organization.id} sx={{ p: 3, border: "1px solid rgba(255,255,255,0.08)" }}>
-                  <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ justifyContent: "space-between", alignItems: { sm: "center" } }}>
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={2}
+                    sx={{ justifyContent: "space-between", alignItems: { sm: "center" } }}
+                  >
                     <Box>
                       <Typography variant="h6" sx={{ fontWeight: 700 }}>
                         {organization.name}
@@ -60,7 +66,8 @@ export function OrganizationSelectionPage() {
             </Stack>
           ) : (
             <Alert severity="info">
-              No organizations are available yet. Create one now to get started, or wait for an invitation if an administrator plans to add you.
+              No organizations are available yet. Create one now to get started, or wait for an invitation if an administrator plans to add
+              you.
             </Alert>
           )}
           <Stack direction="row" spacing={2}>
@@ -77,7 +84,7 @@ export function OrganizationSelectionPage() {
         onSubmit={async (values) => {
           const createdOrganizationId = await createOrganization(values);
           if (createdOrganizationId) {
-            navigate(buildOrganizationPath({ id: createdOrganizationId, slug: values.slug }));
+            void navigate(buildOrganizationPath({ id: createdOrganizationId, slug: values.slug }));
             return true;
           }
           return false;

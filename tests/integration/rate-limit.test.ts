@@ -56,7 +56,10 @@ describe("edge rate limiting (Workers Rate Limiting binding)", () => {
     const attempt = () =>
       app.request(
         `${ORIGIN}/api/auth/sign-in/email`,
-        { ...jsonInit("POST", { email: "nobody@example.com", password: "wrong-password" }), headers: { ...jsonInit("POST", {}).headers, "CF-Connecting-IP": "198.51.100.20" } },
+        {
+          ...jsonInit("POST", { email: "nobody@example.com", password: "wrong-password" }),
+          headers: { ...jsonInit("POST", {}).headers, "CF-Connecting-IP": "198.51.100.20" },
+        },
         bindings,
       );
     expect((await attempt()).status).not.toBe(429);
@@ -103,7 +106,10 @@ describe("Better Auth rate limiting (database storage)", () => {
     const attempt = (headers: Record<string, string>) =>
       app.request(
         `${ORIGIN}/api/auth/sign-in/email`,
-        { ...jsonInit("POST", { email: "nobody2@example.com", password: "wrong-password" }), headers: { ...jsonInit("POST", {}).headers, ...headers } },
+        {
+          ...jsonInit("POST", { email: "nobody2@example.com", password: "wrong-password" }),
+          headers: { ...jsonInit("POST", {}).headers, ...headers },
+        },
         { ...sharedEnv, RATE_LIMIT: fakeRateLimit(1000) as unknown as RateLimit },
       );
     // Exhaust the window for one real IP while rotating the spoofable header.

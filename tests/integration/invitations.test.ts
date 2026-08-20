@@ -68,7 +68,9 @@ describe("invitation -> membership -> team access flow (API)", () => {
     const stranger = await signUp();
     expect((await plainRequest(`${ORIGIN}/api/teams/${team.id}/members`, { headers: { cookie: stranger.cookie } })).status).toBe(403);
 
-    const visible = (await (await plainRequest(`${ORIGIN}/api/organizations/${organization.id}/links`, { headers: { cookie: invitee.cookie } })).json()) as Array<{ id: string }>;
+    const visible = (await (
+      await plainRequest(`${ORIGIN}/api/organizations/${organization.id}/links`, { headers: { cookie: invitee.cookie } })
+    ).json()) as Array<{ id: string }>;
     expect(visible.map((l) => l.id)).toEqual([link.id]);
     expect((await plainRequest(`${ORIGIN}/api/links/${link.id}`, { headers: { cookie: invitee.cookie } })).status).toBe(200);
 
@@ -100,7 +102,10 @@ describe("invitation -> membership -> team access flow (API)", () => {
     const organization = await createOrganization(owner);
     const invitation = await inviteMember(owner, organization.id, `someone-${crypto.randomUUID()}@example.com`);
     const stranger = await signUp();
-    const response = await authRequest(`${ORIGIN}/api/auth/organization/accept-invitation`, jsonInit("POST", { invitationId: invitation.id }, stranger));
+    const response = await authRequest(
+      `${ORIGIN}/api/auth/organization/accept-invitation`,
+      jsonInit("POST", { invitationId: invitation.id }, stranger),
+    );
     expect(response.status).toBeGreaterThanOrEqual(400);
   });
 });

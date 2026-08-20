@@ -9,7 +9,7 @@ const fetchSessions = async (): Promise<LoadResult<AuthSession>> => {
   if (result.error) {
     return { items: [], error: result.error.message ?? "Unable to load active sessions." };
   }
-  return { items: (result.data ?? []) as AuthSession[], error: null };
+  return { items: result.data ?? [], error: null };
 };
 
 const fetchPasskeys = async (): Promise<LoadResult<PasskeySummary>> => {
@@ -17,13 +17,10 @@ const fetchPasskeys = async (): Promise<LoadResult<PasskeySummary>> => {
   if (result.error) {
     return { items: [], error: result.error.message ?? "Unable to load passkeys." };
   }
-  return { items: (result.data ?? []) as PasskeySummary[], error: null };
+  return { items: result.data ?? [], error: null };
 };
 
-export function useSettingsState(options: {
-  session: SessionData | null;
-  setMessage: (message: AppMessage) => void;
-}) {
+export function useSettingsState(options: { session: SessionData | null; setMessage: (message: AppMessage) => void }) {
   const sessionUserName = options.session?.user.name ?? "";
   const userId = options.session?.user.id ?? null;
   const { setMessage } = options;

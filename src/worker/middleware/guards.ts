@@ -32,12 +32,7 @@ export const requireOrganizationAccess = async (c: AppContext, organizationId: s
   const [membership] = await db
     .select()
     .from(members)
-    .where(
-      and(
-        eq(members.organizationId, organizationId),
-        eq(members.userId, user.id),
-      ),
-    )
+    .where(and(eq(members.organizationId, organizationId), eq(members.userId, user.id)))
     .limit(1);
 
   if (!membership) {

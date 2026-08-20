@@ -52,7 +52,7 @@ export function LinksPage() {
   );
 
   const handleRowClick = (params: GridRowParams) => {
-    navigate(buildLinksPath(activeOrganization, String(params.id)));
+    void navigate(buildLinksPath(activeOrganization, String(params.id)));
   };
 
   return (
@@ -63,7 +63,9 @@ export function LinksPage() {
             Links
           </Typography>
           <Typography color="text.secondary">
-            {activeOrganization ? `Showing links you can access in ${activeOrganization.name}.` : "Choose an organization to start managing links."}
+            {activeOrganization
+              ? `Showing links you can access in ${activeOrganization.name}.`
+              : "Choose an organization to start managing links."}
           </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
@@ -85,8 +87,8 @@ export function LinksPage() {
             onRowClick={handleRowClick}
             sx={{
               border: 0,
-              '& .MuiDataGrid-cell': { cursor: "pointer" },
-              '& .MuiDataGrid-columnHeaders': { backgroundColor: "rgba(255,255,255,0.02)" },
+              "& .MuiDataGrid-cell": { cursor: "pointer" },
+              "& .MuiDataGrid-columnHeaders": { backgroundColor: "rgba(255,255,255,0.02)" },
             }}
           />
         </Box>
@@ -101,7 +103,7 @@ export function LinksPage() {
         onSubmit={async (values) => {
           const createdLink = await createLink(values);
           if (createdLink) {
-            navigate(buildLinksPath(activeOrganization, createdLink.id));
+            void navigate(buildLinksPath(activeOrganization, createdLink.id));
             return true;
           }
           return false;

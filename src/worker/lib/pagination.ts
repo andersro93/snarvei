@@ -14,7 +14,13 @@ export const decodeCursor = (raw: string | undefined): Cursor | null => {
   }
   try {
     const parsed = JSON.parse(decode(raw)) as unknown;
-    if (Array.isArray(parsed) && parsed.length === 2 && typeof parsed[0] === "number" && Number.isFinite(parsed[0]) && typeof parsed[1] === "string") {
+    if (
+      Array.isArray(parsed) &&
+      parsed.length === 2 &&
+      typeof parsed[0] === "number" &&
+      Number.isFinite(parsed[0]) &&
+      typeof parsed[1] === "string"
+    ) {
       return { at: parsed[0], id: parsed[1] };
     }
   } catch {

@@ -19,7 +19,10 @@ describe("link creation robustness", () => {
     }
     spy.mockReturnValueOnce("Zz9Zz9Zz");
 
-    const response = await request(`${ORIGIN}/api/links`, jsonInit("POST", { teamId: team.id, targetUrl: "https://example.com/second" }, owner.cookie));
+    const response = await request(
+      `${ORIGIN}/api/links`,
+      jsonInit("POST", { teamId: team.id, targetUrl: "https://example.com/second" }, owner.cookie),
+    );
     expect(response.status, await response.clone().text()).toBe(201);
     const created = (await response.json()) as { slug: string };
     expect(created.slug).toBe("Zz9Zz9Zz");
@@ -28,9 +31,9 @@ describe("link creation robustness", () => {
   it("creates the link and its initial history entry atomically", async () => {
     const { owner, team } = await setupWorkspace();
     const first = await createLink(owner, { teamId: team.id, targetUrl: "https://example.com/a" });
-    const [firstHistory] = (await env.DB.prepare("SELECT id FROM link_target_history WHERE link_id = ?")
-      .bind(first.id)
-      .all<{ id: string }>()).results;
+    const [firstHistory] = (
+      await env.DB.prepare("SELECT id FROM link_target_history WHERE link_id = ?").bind(first.id).all<{ id: string }>()
+    ).results;
     expect(firstHistory).toBeDefined();
 
     // Force the history insert to fail (duplicate primary key) while the link insert would succeed.
@@ -41,7 +44,10 @@ describe("link creation robustness", () => {
     spy.mockImplementationOnce(() => firstHistory!.id as `${string}-${string}-${string}-${string}-${string}`);
     spy.mockImplementation(() => realRandomUUID());
 
-    const response = await request(`${ORIGIN}/api/links`, jsonInit("POST", { teamId: team.id, targetUrl: "https://example.com/b" }, owner.cookie));
+    const response = await request(
+      `${ORIGIN}/api/links`,
+      jsonInit("POST", { teamId: team.id, targetUrl: "https://example.com/b" }, owner.cookie),
+    );
     expect(response.status).toBe(500);
 
     // No orphan link without history may remain.
@@ -51,9 +57,8 @@ describe("link creation robustness", () => {
   it("updates the target and appends history atomically", async () => {
     const { owner, team } = await setupWorkspace();
     const link = await createLink(owner, { teamId: team.id, targetUrl: "https://example.com/v1" });
-    const [history] = (await env.DB.prepare("SELECT id FROM link_target_history WHERE link_id = ?")
-      .bind(link.id)
-      .all<{ id: string }>()).results;
+    const [history] = (await env.DB.prepare("SELECT id FROM link_target_history WHERE link_id = ?").bind(link.id).all<{ id: string }>())
+      .results;
 
     // Force the history insert to collide on primary key: the update must be rolled back too.
     const realRandomUUID = crypto.randomUUID.bind(crypto);
@@ -61,7 +66,10 @@ describe("link creation robustness", () => {
     spy.mockImplementationOnce(() => history!.id as `${string}-${string}-${string}-${string}-${string}`);
     spy.mockImplementation(() => realRandomUUID());
 
-    const response = await request(`${ORIGIN}/api/links/${link.id}`, jsonInit("PATCH", { targetUrl: "https://example.com/v2" }, owner.cookie));
+    const response = await request(
+      `${ORIGIN}/api/links/${link.id}`,
+      jsonInit("PATCH", { targetUrl: "https://example.com/v2" }, owner.cookie),
+    );
     expect(response.status).toBe(500);
 
     const redirect = await request(`${ORIGIN}/l/${link.slug}`);

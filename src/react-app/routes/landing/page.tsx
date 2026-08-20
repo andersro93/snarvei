@@ -1,16 +1,4 @@
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Paper,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { authClient } from "../../lib/auth-client";
@@ -80,7 +68,8 @@ export function LandingPage() {
             Short links you can trust long after they are shared.
           </Typography>
           <Typography variant="h6" color="text.secondary" sx={{ mt: 2, maxWidth: 680 }}>
-            Manage links by organization and team, update destinations safely, and track every click through a single Cloudflare-native control plane.
+            Manage links by organization and team, update destinations safely, and track every click through a single Cloudflare-native
+            control plane.
           </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mt: 4 }}>
             <Chip label="Cloudflare Workers" />
@@ -107,7 +96,7 @@ export function LandingPage() {
                   void signIn({ email, password }).then((result) => {
                     setTwoFactorRequired(Boolean(result.requiresTwoFactor));
                     if (result.ok) {
-                      navigate(afterAuthPath);
+                      void navigate(afterAuthPath);
                     }
                   });
                 }}
@@ -144,7 +133,12 @@ export function LandingPage() {
                     slotProps={{ htmlInput: { "data-testid": "auth-password-input" } }}
                   />
                   <Stack direction="row" spacing={2}>
-                    <Button type="submit" variant="contained" disabled={submitting === "signin" || !email || !password} data-testid="sign-in-button">
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      disabled={submitting === "signin" || !email || !password}
+                      data-testid="sign-in-button"
+                    >
                       Sign in
                     </Button>
                     <Button
@@ -152,7 +146,9 @@ export function LandingPage() {
                       variant="outlined"
                       disabled={submitting === "signup" || !email || !password || !name.trim()}
                       data-testid="create-account-button"
-                      onClick={() => void signUp({ name: name.trim(), email, password }).then((ok: boolean) => ok && navigate(afterAuthPath))}
+                      onClick={() =>
+                        void signUp({ name: name.trim(), email, password }).then((ok: boolean) => ok && navigate(afterAuthPath))
+                      }
                     >
                       Create account
                     </Button>
@@ -168,7 +164,7 @@ export function LandingPage() {
                     }
                     await refreshSessionState();
                     await refreshOrganizations({ silent: true });
-                    navigate(afterAuthPath);
+                    void navigate(afterAuthPath);
                   })
                 }
               >
@@ -195,19 +191,20 @@ export function LandingPage() {
                   <Button
                     variant="outlined"
                     onClick={() =>
-                      void (twoFactorMethod === "totp"
-                        ? authClient.twoFactor.verifyTotp({ code: twoFactorCode })
-                        : authClient.twoFactor.verifyBackupCode({ code: twoFactorCode }))
-                        .then(async (result) => {
-                          if (result.error) {
-                            return;
-                          }
-                          setTwoFactorRequired(false);
-                          setTwoFactorCode("");
-                          await refreshSessionState();
-                          await refreshOrganizations({ silent: true });
-                          navigate(afterAuthPath);
-                        })
+                      void (
+                        twoFactorMethod === "totp"
+                          ? authClient.twoFactor.verifyTotp({ code: twoFactorCode })
+                          : authClient.twoFactor.verifyBackupCode({ code: twoFactorCode })
+                      ).then(async (result) => {
+                        if (result.error) {
+                          return;
+                        }
+                        setTwoFactorRequired(false);
+                        setTwoFactorCode("");
+                        await refreshSessionState();
+                        await refreshOrganizations({ silent: true });
+                        void navigate(afterAuthPath);
+                      })
                     }
                   >
                     Verify code
