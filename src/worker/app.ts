@@ -8,6 +8,7 @@ import { hashIp } from "./lib/crypto";
 import { envMiddleware, ipHashPepper } from "./lib/env";
 import { errorJson, notFound, onError, validationHook } from "./lib/errors";
 import { log } from "./lib/log";
+import { resolveAppVersion } from "./lib/version";
 import { rateLimitMiddleware } from "./lib/rate-limit";
 import { getDb } from "./lib/db";
 import { renderScalarPage } from "./lib/scalar";
@@ -356,7 +357,7 @@ export const createApp = (deps: AppDeps = {}) => {
     if (!ok) {
       log.error("health.degraded", { checks });
     }
-    return c.json({ ok, service: "snarvei", version: c.env.APP_VERSION ?? "dev", checks }, ok ? 200 : 503);
+    return c.json({ ok, service: "snarvei", version: resolveAppVersion(c.env.APP_VERSION), checks }, ok ? 200 : 503);
   });
 
   return app;

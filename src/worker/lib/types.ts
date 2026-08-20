@@ -11,7 +11,7 @@ export type AppBindings = {
   APP_URL?: string;
   APP_NAME?: string;
   NODE_ENV?: string;
-  /** Deployed git SHA (passed by the deploy workflows as --var APP_VERSION); "dev" locally. */
+  /** Optional explicit version override; by default the build bakes in GITHUB_SHA (see vite.config.ts). */
   APP_VERSION?: string;
   /** Transactional email (Resend). Both required to actually send; otherwise messages are dropped with a redacted log line. */
   RESEND_API_KEY?: string;
