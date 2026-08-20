@@ -197,6 +197,12 @@ That means the initial implementation should preserve the decisions documented h
 4. Keep route validation and OpenAPI metadata close to route definitions.
 5. Treat tests as required, not optional.
 
+## Abuse Protection
+
+1. Better Auth's rate limiter is enabled with D1-backed storage (`rate_limits` table) so limits are shared across Workers isolates. Sign-in, sign-up and two-factor endpoints use Better Auth's strict per-IP rules; other auth routes use the base rule configured in `src/worker/lib/auth.ts`.
+2. A Workers Rate Limiting binding (`RATE_LIMIT` in `wrangler.jsonc`) additionally limits `/l/*` redirects and `/api/auth/*` per client IP at the edge (429 + `Retry-After`).
+3. Client IPs are read from `cf-connecting-ip` only; `x-forwarded-for` is ignored because it is spoofable.
+
 ## CI/CD
 
 GitHub Actions is used for CI/CD.

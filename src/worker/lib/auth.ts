@@ -78,6 +78,22 @@ export const createAuthOptions = (env: AppBindings): BetterAuthOptions => {
     baseURL: baseUrl,
     appName: env.APP_NAME || "Snarvei",
     trustedOrigins: createTrustedOrigins(baseUrl),
+    // Better Auth's limiter is off unless NODE_ENV=production and defaults to
+    // per-isolate memory storage, which is useless on Workers. Use D1 so the
+    // limit is shared across isolates/colos. Default special rules cover
+    // sign-in/sign-up/two-factor (3 per 10s); the base rule applies elsewhere.
+    rateLimit: {
+      enabled: true,
+      storage: "database",
+      window: 60,
+      max: 60,
+    },
+    advanced: {
+      ipAddress: {
+        // Cloudflare sets this from the real client address; x-forwarded-for is spoofable.
+        ipAddressHeaders: ["cf-connecting-ip"],
+      },
+    },
     database: drizzleAdapter(db, {
       provider: "sqlite",
       schema: {

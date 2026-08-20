@@ -2,6 +2,7 @@ import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../src/worker/app";
 import type { AppBindings } from "../../src/worker/lib/types";
+import { permissiveRateLimit, randomIp } from "./support/api";
 
 type StoredObject = {
   body: ArrayBuffer;
@@ -49,6 +50,7 @@ describe("app", () => {
   const app = createApp();
   const testEnv: AppBindings = {
     DB: env.DB,
+    RATE_LIMIT: permissiveRateLimit,
     PROFILE_IMAGES: createMockBucket(),
     AUTH_SECRET: "4d9ae7e8767de815a6754b18b6fc8c6127ec4ceb3d8f4d64a577f1e3cf6b4ef2",
     APP_URL: "http://localhost:8787",
@@ -62,7 +64,7 @@ describe("app", () => {
     const suffix = crypto.randomUUID();
     const response = await request("http://localhost/api/auth/sign-up/email", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "cf-connecting-ip": randomIp() },
       body: JSON.stringify({
         name: `User ${suffix}`,
         email: `user-${suffix}@example.com`,
@@ -157,7 +159,7 @@ describe("app", () => {
     // Better Auth lets a user set an arbitrary image URL on their own profile.
     const forge = await request("http://localhost/api/auth/update-user", {
       method: "POST",
-      headers: { "content-type": "application/json", cookie, origin: "http://localhost" },
+      headers: { "content-type": "application/json", cookie, origin: "http://localhost", "cf-connecting-ip": randomIp() },
       body: JSON.stringify({ image: `http://localhost/${victimKey}` }),
     });
     expect(forge.status, await forge.text()).toBe(200);
