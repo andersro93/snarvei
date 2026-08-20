@@ -49,7 +49,7 @@ type AuthInstance = {
 };
 
 const createInviteLink = (baseUrl: string, invitationId: string) =>
-  `${baseUrl.replace(/\/$/, "")}/app?invitation=${encodeURIComponent(invitationId)}`;
+  `${baseUrl.replace(/\/$/, "")}/app/invitations/${encodeURIComponent(invitationId)}`;
 
 
 const createTrustedOrigins = (baseUrl: string) => {

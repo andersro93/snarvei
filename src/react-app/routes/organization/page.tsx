@@ -1,17 +1,33 @@
 import AddIcon from "@mui/icons-material/Add";
+import GroupIcon from "@mui/icons-material/Group";
 import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import { Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Paper, Stack, Typography } from "@mui/material";
 import { DataGrid, type GridColDef, Toolbar } from "@mui/x-data-grid";
 import { useMemo, useState } from "react";
 import { CreateTeamDialog, InviteMemberDialog } from "../../components/dialogs";
+import { TeamMembersDialog } from "../../components/team-members-dialog";
 import { useWorkspace } from "../../hooks/use-workspace-context";
 import { roleLabel } from "../../types";
 import type { Invitation, Team } from "../../types";
 
 export function OrganizationPage() {
-  const { activeOrganization, createTeam, invitations, loadingInvitations, members, submitting, teams, inviteMember } = useWorkspace();
+  const {
+    activeOrganization,
+    activeOrganizationId,
+    cancelInvitation,
+    createTeam,
+    invitations,
+    loadingInvitations,
+    members,
+    refreshOrganizationData,
+    submitting,
+    teams,
+    inviteMember,
+  } = useWorkspace();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
+  const [managedTeam, setManagedTeam] = useState<Team | null>(null);
+  const teamName = (teamId?: string | null) => teams.find((team) => team.id === teamId)?.name ?? null;
 
   const columns = useMemo<GridColDef[]>(
     () => [
@@ -70,9 +86,27 @@ export function OrganizationPage() {
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
               Teams
             </Typography>
-            <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-              {teams.length ? teams.map((team: Team) => <Chip key={team.id} label={team.name} />) : <Alert severity="info">No teams in this organization yet.</Alert>}
+            <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
+              {teams.length ? (
+                teams.map((team: Team) => (
+                  <Chip
+                    key={team.id}
+                    label={team.name}
+                    icon={<GroupIcon />}
+                    onClick={() => setManagedTeam(team)}
+                    data-testid={`manage-team-${team.name}`}
+                    clickable
+                  />
+                ))
+              ) : (
+                <Alert severity="info">No teams in this organization yet.</Alert>
+              )}
             </Stack>
+            {teams.length ? (
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                Click a team to manage its members.
+              </Typography>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -85,11 +119,27 @@ export function OrganizationPage() {
             <Stack spacing={1}>
               {invitations.length ? (
                 invitations.map((invitation: Invitation) => (
-                  <Paper key={invitation.id} sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }}>
-                    <Typography sx={{ fontWeight: 700 }}>{invitation.email}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {roleLabel(invitation.role)} · {invitation.status}
-                    </Typography>
+                  <Paper key={invitation.id} sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }} data-testid={`invitation-${invitation.email}`}>
+                    <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between", alignItems: "center" }}>
+                      <Box>
+                        <Typography sx={{ fontWeight: 700 }}>{invitation.email}</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {roleLabel(invitation.role)} · {invitation.status}
+                          {teamName(invitation.teamId) ? ` · team ${teamName(invitation.teamId)}` : ""}
+                        </Typography>
+                      </Box>
+                      {invitation.status === "pending" ? (
+                        <Button
+                          size="small"
+                          color="inherit"
+                          disabled={submitting === `cancel-${invitation.id}`}
+                          onClick={() => void cancelInvitation(invitation.id)}
+                          data-testid={`cancel-invitation-${invitation.email}`}
+                        >
+                          Cancel
+                        </Button>
+                      ) : null}
+                    </Stack>
                   </Paper>
                 ))
               ) : (
@@ -103,8 +153,20 @@ export function OrganizationPage() {
       <InviteMemberDialog
         open={inviteOpen}
         submitting={submitting === "invite-member"}
+        teams={teams}
         onClose={() => setInviteOpen(false)}
         onSubmit={async (values) => inviteMember(values)}
+      />
+      <TeamMembersDialog
+        team={managedTeam}
+        organizationId={activeOrganizationId ?? ""}
+        members={members}
+        onClose={() => setManagedTeam(null)}
+        onChanged={() => {
+          if (activeOrganizationId) {
+            void refreshOrganizationData(activeOrganizationId, { silent: true });
+          }
+        }}
       />
       <CreateTeamDialog
         open={createTeamOpen}

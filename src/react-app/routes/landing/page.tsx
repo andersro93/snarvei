@@ -11,7 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { authClient } from "../../lib/auth-client";
 import { useWorkspace } from "../../hooks/use-workspace-context";
 
@@ -28,6 +28,10 @@ const inputStyle = {
 
 export function LandingPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Destination preserved by RequireSession (e.g. an invitation link); only in-app paths are honoured.
+  const nextParam = searchParams.get("next");
+  const afterAuthPath = nextParam && nextParam.startsWith("/app/") ? nextParam : "/app/select-organization";
   const { message, refreshOrganizations, refreshSessionState, session, sessionPending, setMessage, signIn, signUp, submitting } =
     useWorkspace();
   const [email, setEmail] = useState("owner@example.com");
@@ -115,7 +119,7 @@ export function LandingPage() {
                     void signIn({ email, password }).then((result) => {
                       setTwoFactorRequired(Boolean(result.requiresTwoFactor));
                       if (result.ok) {
-                        navigate("/app/select-organization");
+                        navigate(afterAuthPath);
                       }
                     })
                   }
@@ -126,7 +130,7 @@ export function LandingPage() {
                   variant="outlined"
                   disabled={submitting === "signup"}
                   data-testid="create-account-button"
-                  onClick={() => void signUp({ name, email, password }).then((ok: boolean) => ok && navigate("/app/select-organization"))}
+                  onClick={() => void signUp({ name, email, password }).then((ok: boolean) => ok && navigate(afterAuthPath))}
                 >
                   Create account
                 </Button>
@@ -140,7 +144,7 @@ export function LandingPage() {
                     }
                     await refreshSessionState();
                     await refreshOrganizations({ silent: true });
-                    navigate("/app/select-organization");
+                    navigate(afterAuthPath);
                   })
                 }
               >
@@ -178,7 +182,7 @@ export function LandingPage() {
                           setTwoFactorCode("");
                           await refreshSessionState();
                           await refreshOrganizations({ silent: true });
-                          navigate("/app/select-organization");
+                          navigate(afterAuthPath);
                         })
                     }
                   >

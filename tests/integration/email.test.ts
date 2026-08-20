@@ -29,7 +29,7 @@ describe("transactional email", () => {
     expect(sent).toHaveLength(1);
     expect(sent[0]?.to).toBe(invitee);
     expect(sent[0]?.subject).toMatch(/invited/i);
-    expect(sent[0]?.text).toContain(`/app?invitation=${invitation.id}`);
+    expect(sent[0]?.text).toContain(`/app/invitations/${invitation.id}`);
 
     const logged = log.mock.calls.map((call) => String(call[0])).join("\n");
     expect(logged).not.toContain(invitation.id);

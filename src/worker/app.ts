@@ -15,6 +15,7 @@ import { ErrorSchema, authErrorResponses, cookieSecurity } from "./openapi/schem
 import { requireUser } from "./middleware/guards";
 import { sessionMiddleware } from "./middleware/session";
 import { registerLinkRoutes } from "./routes/links";
+import { registerTeamRoutes } from "./routes/teams";
 
 const PROFILE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const PROFILE_IMAGE_ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -279,6 +280,7 @@ export const createApp = (deps: AppDeps = {}) => {
   });
 
   registerLinkRoutes(app);
+  registerTeamRoutes(app);
 
   app.get("/l/:slug", async (c) => {
     const db = getDb(c);
