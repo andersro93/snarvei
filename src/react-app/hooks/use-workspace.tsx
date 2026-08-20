@@ -82,10 +82,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     return visibleTeams[0]?.id ?? null;
   }, [activeOrganizationId, activeTeamId, session, visibleTeams]);
 
-  const activeTeam = useMemo(
-    () => visibleTeams.find((team) => team.id === effectiveTeamId) ?? null,
-    [effectiveTeamId, visibleTeams],
-  );
 
   const visibleMembers = useMemo(
     () => (activeOrganizationId && loadedOrganizationId === activeOrganizationId ? members : []),
@@ -533,7 +529,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     activeOrganization,
     teams: visibleTeams,
     activeTeamId: effectiveTeamId,
-    activeTeam,
     members: visibleMembers,
     invitations: visibleInvitations,
     links: visibleLinks,
@@ -559,11 +554,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     switchOrganization,
     createOrganization,
     createTeam,
-    setActiveTeamId,
     setSelectedLinkId,
     refreshOrganizations,
     refreshOrganizationData,
-    refreshLinks,
     refreshSelectedLinkData,
     createLink,
     updateLink,

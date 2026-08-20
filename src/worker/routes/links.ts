@@ -2,10 +2,10 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { and, desc, eq, gte, inArray, lt, or, sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { decodeCursor, paginate } from "../lib/pagination";
-import { clickEvents, links, linkTargetHistory, teamMembers, teams } from "../db/schema";
+import { clickEvents, links, linkTargetHistory, teams } from "../db/schema";
 import { getDb } from "../lib/db";
 import { generateSlug } from "../lib/slug";
-import { requireOrganizationAccess, requireTeamAccess, requireUser } from "../middleware/guards";
+import { getAccessibleTeamIds, requireTeamAccess, requireUser } from "../middleware/guards";
 import {
   analyticsRoute,
   createLinkRoute,
@@ -86,16 +86,8 @@ const resolveAnalyticsRange = (query: { from?: string; to?: string }) => {
   return { from, to };
 };
 
-export const registerLinkRoutes = (app: AppRoute) => {
-  app.openapi(linkListRoute, async (c) => {
-    const { teamId } = c.req.valid("param");
-    const { limit, cursor } = c.req.valid("query");
-    const after = decodeCursor(cursor);
-    await requireTeamAccess(c, teamId);
-    const db = getDb(c);
-
-    const teamLinks = await db
-      .select({
+/** Columns returned for a link (joined with its team name). */
+const linkSelection = {
         id: links.id,
         organizationId: links.organizationId,
         teamId: links.teamId,
@@ -110,7 +102,18 @@ export const registerLinkRoutes = (app: AppRoute) => {
         updatedBy: links.updatedBy,
         createdAt: links.createdAt,
         updatedAt: links.updatedAt,
-      })
+      };
+
+export const registerLinkRoutes = (app: AppRoute) => {
+  app.openapi(linkListRoute, async (c) => {
+    const { teamId } = c.req.valid("param");
+    const { limit, cursor } = c.req.valid("query");
+    const after = decodeCursor(cursor);
+    await requireTeamAccess(c, teamId);
+    const db = getDb(c);
+
+    const teamLinks = await db
+      .select(linkSelection)
       .from(links)
       .innerJoin(teams, eq(teams.id, links.teamId))
       .where(and(eq(links.teamId, teamId), linksAfter(after)))
@@ -125,30 +128,14 @@ export const registerLinkRoutes = (app: AppRoute) => {
   });
 
   app.openapi(organizationLinkListRoute, async (c) => {
-    const user = requireUser(c);
     const { organizationId } = c.req.valid("param");
     const { limit, cursor } = c.req.valid("query");
     const after = decodeCursor(cursor);
     const db = getDb(c);
-    const membership = await requireOrganizationAccess(c, organizationId);
+    const visibleTeamIds = await getAccessibleTeamIds(c, organizationId);
 
     const baseQuery = db
-      .select({
-        id: links.id,
-        organizationId: links.organizationId,
-        teamId: links.teamId,
-        teamName: teams.name,
-        slug: links.slug,
-        targetUrl: links.targetUrl,
-        redirectStatus: links.redirectStatus,
-        isActive: links.isActive,
-        title: links.title,
-        description: links.description,
-        createdBy: links.createdBy,
-        updatedBy: links.updatedBy,
-        createdAt: links.createdAt,
-        updatedAt: links.updatedAt,
-      })
+      .select(linkSelection)
       .from(links)
       .innerJoin(teams, eq(teams.id, links.teamId));
 
@@ -160,7 +147,7 @@ export const registerLinkRoutes = (app: AppRoute) => {
       return c.json(page.items.map(mapLink), 200);
     };
 
-    if (membership.role === "owner" || membership.role === "admin") {
+    if (visibleTeamIds === null) {
       const orgLinks = await baseQuery
         .where(and(eq(links.organizationId, organizationId), linksAfter(after)))
         .orderBy(desc(links.createdAt), desc(links.id))
@@ -168,13 +155,6 @@ export const registerLinkRoutes = (app: AppRoute) => {
       return respond(orgLinks);
     }
 
-    const visibleTeamRows = await db
-      .select({ id: teamMembers.teamId })
-      .from(teamMembers)
-      .innerJoin(teams, eq(teams.id, teamMembers.teamId))
-      .where(and(eq(teamMembers.userId, user.id), eq(teams.organizationId, organizationId)));
-
-    const visibleTeamIds = visibleTeamRows.map((team) => team.id);
     if (!visibleTeamIds.length) {
       return c.json([], 200);
     }

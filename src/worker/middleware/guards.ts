@@ -7,6 +7,16 @@ import type { AppBindings, AppVariables } from "../lib/types";
 
 type AppContext = Context<{ Bindings: AppBindings; Variables: AppVariables }>;
 
+/** Better Auth may store several roles as a comma-joined string ("member,admin"). */
+export const parseRoles = (role: string | null | undefined) =>
+  (role ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+/** Org owners and admins see every team in the organization. */
+export const isOrgAdmin = (role: string | null | undefined) => parseRoles(role).some((value) => value === "owner" || value === "admin");
+
 export const requireUser = (c: AppContext) => {
   const user = c.get("user");
   if (!user) {
@@ -47,7 +57,7 @@ export const requireTeamAccess = async (c: AppContext, teamId: string) => {
   }
 
   const membership = await requireOrganizationAccess(c, team.organizationId);
-  if (membership.role === "owner" || membership.role === "admin") {
+  if (isOrgAdmin(membership.role)) {
     return team;
   }
 
@@ -62,4 +72,24 @@ export const requireTeamAccess = async (c: AppContext, teamId: string) => {
   }
 
   return team;
+};
+
+/**
+ * Team ids the current user may see in an organization: `null` means "all"
+ * (owner/admin), otherwise the teams they are explicitly a member of.
+ */
+export const getAccessibleTeamIds = async (c: AppContext, organizationId: string): Promise<string[] | null> => {
+  const user = requireUser(c);
+  const membership = await requireOrganizationAccess(c, organizationId);
+  if (isOrgAdmin(membership.role)) {
+    return null;
+  }
+
+  const db = getDb(c);
+  const rows = await db
+    .select({ id: teamMembers.teamId })
+    .from(teamMembers)
+    .innerJoin(teams, eq(teams.id, teamMembers.teamId))
+    .where(and(eq(teamMembers.userId, user.id), eq(teams.organizationId, organizationId)));
+  return rows.map((row) => row.id);
 };
