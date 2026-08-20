@@ -296,7 +296,12 @@ export const clickEvents = sqliteTable(
     queryString: text("query_string"),
     redirectStatusUsed: integer("redirect_status_used").notNull(),
   },
-  (table) => [index("click_events_link_id_idx").on(table.linkId), index("click_events_clicked_at_idx").on(table.clickedAt)],
+  (table) => [
+    index("click_events_link_id_idx").on(table.linkId),
+    index("click_events_clicked_at_idx").on(table.clickedAt),
+    // Per-link time-window analytics queries.
+    index("click_events_link_id_clicked_at_idx").on(table.linkId, table.clickedAt),
+  ],
 );
 
 export const usersRelations = relations(users, ({ many }) => ({

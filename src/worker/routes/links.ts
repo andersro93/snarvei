@@ -1,6 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, or, sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
+import { decodeCursor, paginate } from "../lib/pagination";
 import { clickEvents, links, linkTargetHistory, teamMembers, teams } from "../db/schema";
 import { getDb } from "../lib/db";
 import { generateSlug } from "../lib/slug";
@@ -61,9 +62,35 @@ const MAX_SLUG_ATTEMPTS = 10;
 const isSlugCollision = (error: unknown) =>
   error instanceof Error && /UNIQUE constraint failed: links\.slug/.test(error.message);
 
+/** Keyset condition for newest-first link pages: rows strictly after the cursor. */
+const linksAfter = (after: { at: number; id: string } | null) =>
+  after ? or(lt(links.createdAt, new Date(after.at)), and(eq(links.createdAt, new Date(after.at)), lt(links.id, after.id))) : undefined;
+
+const ANALYTICS_DEFAULT_DAYS = 30;
+const ANALYTICS_MAX_DAYS = 366;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Resolve the analytics window; defaults to the last 30 days, capped at one year, `to` exclusive. */
+const resolveAnalyticsRange = (query: { from?: string; to?: string }) => {
+  const to = query.to ? new Date(query.to) : new Date();
+  const from = query.from ? new Date(query.from) : new Date(to.getTime() - ANALYTICS_DEFAULT_DAYS * DAY_MS);
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
+    throw new HTTPException(400, { message: "from/to must be ISO timestamps" });
+  }
+  if (from.getTime() >= to.getTime()) {
+    throw new HTTPException(400, { message: "from must be before to" });
+  }
+  if (to.getTime() - from.getTime() > ANALYTICS_MAX_DAYS * DAY_MS) {
+    throw new HTTPException(400, { message: `Analytics range must be at most ${ANALYTICS_MAX_DAYS} days` });
+  }
+  return { from, to };
+};
+
 export const registerLinkRoutes = (app: AppRoute) => {
   app.openapi(linkListRoute, async (c) => {
     const { teamId } = c.req.valid("param");
+    const { limit, cursor } = c.req.valid("query");
+    const after = decodeCursor(cursor);
     await requireTeamAccess(c, teamId);
     const db = getDb(c);
 
@@ -86,15 +113,22 @@ export const registerLinkRoutes = (app: AppRoute) => {
       })
       .from(links)
       .innerJoin(teams, eq(teams.id, links.teamId))
-      .where(eq(links.teamId, teamId))
-      .orderBy(desc(links.createdAt));
+      .where(and(eq(links.teamId, teamId), linksAfter(after)))
+      .orderBy(desc(links.createdAt), desc(links.id))
+      .limit(limit + 1);
 
-    return c.json(teamLinks.map(mapLink), 200);
+    const page = paginate(teamLinks, limit, (row) => ({ at: row.createdAt.getTime(), id: row.id }));
+    if (page.nextCursor) {
+      c.header("x-next-cursor", page.nextCursor);
+    }
+    return c.json(page.items.map(mapLink), 200);
   });
 
   app.openapi(organizationLinkListRoute, async (c) => {
     const user = requireUser(c);
     const { organizationId } = c.req.valid("param");
+    const { limit, cursor } = c.req.valid("query");
+    const after = decodeCursor(cursor);
     const db = getDb(c);
     const membership = await requireOrganizationAccess(c, organizationId);
 
@@ -118,9 +152,20 @@ export const registerLinkRoutes = (app: AppRoute) => {
       .from(links)
       .innerJoin(teams, eq(teams.id, links.teamId));
 
+    const respond = (rows: Awaited<typeof baseQuery>) => {
+      const page = paginate(rows, limit, (row) => ({ at: row.createdAt.getTime(), id: row.id }));
+      if (page.nextCursor) {
+        c.header("x-next-cursor", page.nextCursor);
+      }
+      return c.json(page.items.map(mapLink), 200);
+    };
+
     if (membership.role === "owner" || membership.role === "admin") {
-      const orgLinks = await baseQuery.where(eq(links.organizationId, organizationId)).orderBy(desc(links.createdAt));
-      return c.json(orgLinks.map(mapLink), 200);
+      const orgLinks = await baseQuery
+        .where(and(eq(links.organizationId, organizationId), linksAfter(after)))
+        .orderBy(desc(links.createdAt), desc(links.id))
+        .limit(limit + 1);
+      return respond(orgLinks);
     }
 
     const visibleTeamRows = await db
@@ -134,8 +179,11 @@ export const registerLinkRoutes = (app: AppRoute) => {
       return c.json([], 200);
     }
 
-    const orgLinks = await baseQuery.where(inArray(links.teamId, visibleTeamIds)).orderBy(desc(links.createdAt));
-    return c.json(orgLinks.map(mapLink), 200);
+    const orgLinks = await baseQuery
+      .where(and(inArray(links.teamId, visibleTeamIds), linksAfter(after)))
+      .orderBy(desc(links.createdAt), desc(links.id))
+      .limit(limit + 1);
+    return respond(orgLinks);
   });
 
   app.openapi(createLinkRoute, async (c) => {
@@ -284,6 +332,8 @@ export const registerLinkRoutes = (app: AppRoute) => {
   app.openapi(historyRoute, async (c) => {
     requireUser(c);
     const { linkId } = c.req.valid("param");
+    const { limit, cursor } = c.req.valid("query");
+    const after = decodeCursor(cursor);
     const db = getDb(c);
     const [existing] = await db.select().from(links).where(eq(links.id, linkId)).limit(1);
     if (!existing) {
@@ -295,11 +345,26 @@ export const registerLinkRoutes = (app: AppRoute) => {
     const history = await db
       .select()
       .from(linkTargetHistory)
-      .where(eq(linkTargetHistory.linkId, linkId))
-      .orderBy(desc(linkTargetHistory.changedAt));
+      .where(
+        and(
+          eq(linkTargetHistory.linkId, linkId),
+          after
+            ? or(
+                lt(linkTargetHistory.changedAt, new Date(after.at)),
+                and(eq(linkTargetHistory.changedAt, new Date(after.at)), lt(linkTargetHistory.id, after.id)),
+              )
+            : undefined,
+        ),
+      )
+      .orderBy(desc(linkTargetHistory.changedAt), desc(linkTargetHistory.id))
+      .limit(limit + 1);
 
+    const page = paginate(history, limit, (item) => ({ at: item.changedAt.getTime(), id: item.id }));
+    if (page.nextCursor) {
+      c.header("x-next-cursor", page.nextCursor);
+    }
     return c.json(
-      history.map((item) => ({
+      page.items.map((item) => ({
         ...item,
         changedAt: item.changedAt.toISOString(),
       })),
@@ -310,6 +375,7 @@ export const registerLinkRoutes = (app: AppRoute) => {
   app.openapi(analyticsRoute, async (c) => {
     requireUser(c);
     const { linkId } = c.req.valid("param");
+    const range = resolveAnalyticsRange(c.req.valid("query"));
     const db = getDb(c);
     const [existing] = await db.select().from(links).where(eq(links.id, linkId)).limit(1);
     if (!existing) {
@@ -318,18 +384,19 @@ export const registerLinkRoutes = (app: AppRoute) => {
 
     await requireTeamAccess(c, existing.teamId);
 
+    const inRange = and(eq(clickEvents.linkId, linkId), gte(clickEvents.clickedAt, range.from), lt(clickEvents.clickedAt, range.to));
     const [summary] = await db
       .select({
         totalClicks: sql<number>`count(*)`,
         uniqueVisitors: sql<number>`count(distinct ${clickEvents.ipHash})`,
       })
       .from(clickEvents)
-      .where(eq(clickEvents.linkId, linkId));
+      .where(inRange);
 
     const topCountries = await db
       .select({ country: clickEvents.country, clicks: sql<number>`count(*)` })
       .from(clickEvents)
-      .where(eq(clickEvents.linkId, linkId))
+      .where(inRange)
       .groupBy(clickEvents.country)
       .orderBy(sql`count(*) desc`)
       .limit(5);
@@ -337,7 +404,7 @@ export const registerLinkRoutes = (app: AppRoute) => {
     const topReferrers = await db
       .select({ referer: clickEvents.referer, clicks: sql<number>`count(*)` })
       .from(clickEvents)
-      .where(eq(clickEvents.linkId, linkId))
+      .where(inRange)
       .groupBy(clickEvents.referer)
       .orderBy(sql`count(*) desc`)
       .limit(5);
@@ -348,7 +415,7 @@ export const registerLinkRoutes = (app: AppRoute) => {
         clicks: sql<number>`count(*)`,
       })
       .from(clickEvents)
-      .where(eq(clickEvents.linkId, linkId))
+      .where(inRange)
       .groupBy(sql`strftime('%Y-%m-%d', ${clickEvents.clickedAt} / 1000, 'unixepoch')`)
       .orderBy(sql`strftime('%Y-%m-%d', ${clickEvents.clickedAt} / 1000, 'unixepoch') asc`);
 
@@ -359,6 +426,7 @@ export const registerLinkRoutes = (app: AppRoute) => {
         topCountries,
         topReferrers,
         clicksByDay,
+        range: { from: range.from.toISOString(), to: range.to.toISOString() },
       },
       200,
     );

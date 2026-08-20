@@ -299,29 +299,43 @@ export const createApp = (deps: AppDeps = {}) => {
       return c.text("Link not found", 404);
     }
 
+    const recordClick = async () => {
+      const ip = c.req.raw.headers.get("CF-Connecting-IP");
+      const ipHash = await hashIp(ip, ipHashPepper(c.env));
+      const cf = c.req.raw.cf as IncomingRequestCfProperties | undefined;
+      const url = new URL(c.req.url);
+      await db.insert(clickEvents).values({
+        id: crypto.randomUUID(),
+        linkId: link.id,
+        clickedAt: new Date(),
+        ipHash,
+        userAgent: c.req.header("user-agent") ?? null,
+        referer: c.req.header("referer") ?? null,
+        country: cf?.country ?? null,
+        region: cf?.region ?? null,
+        city: cf?.city ?? null,
+        colo: cf?.colo ?? null,
+        asn: cf?.asn ?? null,
+        host: url.host,
+        path: url.pathname,
+        queryString: url.search ? url.search.slice(1) : null,
+        redirectStatusUsed: link.redirectStatus,
+      });
+    };
+
     c.executionCtx.waitUntil(
-      (async () => {
-        const ip = c.req.raw.headers.get("CF-Connecting-IP");
-        const ipHash = await hashIp(ip, ipHashPepper(c.env));
-        const cf = c.req.raw.cf as IncomingRequestCfProperties | undefined;
-        await db.insert(clickEvents).values({
-          id: crypto.randomUUID(),
-          linkId: link.id,
-          clickedAt: new Date(),
-          ipHash,
-          userAgent: c.req.header("user-agent") ?? null,
-          referer: c.req.header("referer") ?? null,
-          country: cf?.country ?? null,
-          region: cf?.region ?? null,
-          city: cf?.city ?? null,
-          colo: cf?.colo ?? null,
-          asn: cf?.asn ?? null,
-          host: new URL(c.req.url).host,
-          path: new URL(c.req.url).pathname,
-          queryString: new URL(c.req.url).search ? new URL(c.req.url).search.slice(1) : null,
-          redirectStatusUsed: link.redirectStatus,
-        });
-      })(),
+      recordClick().catch((error: unknown) => {
+        // Analytics must never break redirects, but failures must be visible in the logs.
+        console.error(
+          JSON.stringify({
+            level: "error",
+            event: "click.record_failed",
+            linkId: link.id,
+            slug,
+            error: error instanceof Error ? { name: error.name, message: error.message } : String(error),
+          }),
+        );
+      }),
     );
 
     return c.redirect(link.targetUrl, link.redirectStatus as 301 | 302 | 307);
