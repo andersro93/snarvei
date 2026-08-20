@@ -84,7 +84,7 @@ These rules define how the system should behave.
 
 1. Click analytics are stored for as long as the Link exists.
 2. Raw IP addresses are not stored.
-3. Only hashed IP values are stored.
+3. Only hashed IP values are stored (keyed hash); query strings are reduced to `utm_*` parameters, referers to origin + path, user agents capped at 256 characters.
 4. If a Link is deleted, its analytics and target history are deleted as well.
 
 ## Architecture
