@@ -247,12 +247,10 @@ export const links = sqliteTable(
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
     title: text("title"),
     description: text("description"),
-    createdBy: text("created_by")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    updatedBy: text("updated_by")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    // Authorship is informational: links are owned by the team, so deleting a
+    // user must never delete links. Nullable + set null instead of cascade.
+    createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+    updatedBy: text("updated_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestampMs("created_at"),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
@@ -271,9 +269,7 @@ export const linkTargetHistory = sqliteTable(
       .references(() => links.id, { onDelete: "cascade" }),
     oldTargetUrl: text("old_target_url"),
     newTargetUrl: text("new_target_url").notNull(),
-    changedBy: text("changed_by")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    changedBy: text("changed_by").references(() => users.id, { onDelete: "set null" }),
     changedAt: timestampMs("changed_at"),
   },
   (table) => [index("link_target_history_link_id_idx").on(table.linkId)],
