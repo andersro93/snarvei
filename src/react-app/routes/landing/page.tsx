@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -27,7 +28,8 @@ const inputStyle = {
 
 export function LandingPage() {
   const navigate = useNavigate();
-  const { refreshOrganizations, refreshSessionState, session, sessionPending, signIn, signUp, submitting } = useWorkspace();
+  const { message, refreshOrganizations, refreshSessionState, session, sessionPending, setMessage, signIn, signUp, submitting } =
+    useWorkspace();
   const [email, setEmail] = useState("owner@example.com");
   const [name, setName] = useState("Anders");
   const [password, setPassword] = useState("Password123!");
@@ -87,6 +89,11 @@ export function LandingPage() {
               <Typography variant="h5" sx={{ fontWeight: 700 }}>
                 Sign in or create your first workspace
               </Typography>
+              {message ? (
+                <Alert severity={message.severity} onClose={() => setMessage(null)}>
+                  {message.text}
+                </Alert>
+              ) : null}
               <input hidden aria-hidden value={name} readOnly />
               <Box>
                 <Typography variant="body2" sx={{ mb: 1 }}>Name</Typography>
