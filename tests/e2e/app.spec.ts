@@ -30,6 +30,15 @@ test("landing page renders product messaging", async ({ page }) => {
   await expect(page.getByText("Cloudflare Workers")).toBeVisible();
 });
 
+test("API reference page renders from the self-hosted Scalar bundle", async ({ page }) => {
+  const bundle = await page.request.get("/vendor/scalar-api-reference.js");
+  expect(bundle.status()).toBe(200);
+  expect(bundle.headers()["content-type"]).toContain("javascript");
+
+  await page.goto("/scalar");
+  await expect(page.getByText("Snarvei API").first()).toBeVisible({ timeout: 20000 });
+});
+
 test("user can create and manage a link end to end", async ({ page }) => {
   const id = unique();
   const name = `Owner ${id}`;
