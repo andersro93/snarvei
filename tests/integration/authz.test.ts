@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createApp } from "../../src/worker/app";
 import type { AppBindings } from "../../src/worker/lib/types";
 
@@ -35,147 +35,6 @@ const extractSessionCookie = (response: Response) => {
 
 const createId = (prefix: string) => `${prefix}-${crypto.randomUUID()}`;
 
-const schemaStatements = [
-  `CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    email_verified INTEGER NOT NULL DEFAULT 0,
-    image TEXT,
-    two_factor_enabled INTEGER DEFAULT 0,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
-  )`,
-  `CREATE TABLE IF NOT EXISTS sessions (
-    id TEXT PRIMARY KEY,
-    expires_at INTEGER NOT NULL,
-    token TEXT NOT NULL UNIQUE,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    ip_address TEXT,
-    user_agent TEXT,
-    user_id TEXT NOT NULL,
-    active_organization_id TEXT,
-    active_team_id TEXT
-  )`,
-  `CREATE TABLE IF NOT EXISTS accounts (
-    id TEXT PRIMARY KEY,
-    account_id TEXT NOT NULL,
-    provider_id TEXT NOT NULL,
-    issuer TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    access_token TEXT,
-    refresh_token TEXT,
-    id_token TEXT,
-    access_token_expires_at INTEGER,
-    refresh_token_expires_at INTEGER,
-    scope TEXT,
-    password TEXT,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
-  )`,
-  `CREATE TABLE IF NOT EXISTS verifications (
-    id TEXT PRIMARY KEY,
-    identifier TEXT NOT NULL,
-    value TEXT NOT NULL,
-    expires_at INTEGER NOT NULL,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
-  )`,
-  `CREATE TABLE IF NOT EXISTS two_factors (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    secret TEXT NOT NULL,
-    backup_codes TEXT NOT NULL,
-    verified INTEGER NOT NULL DEFAULT 0,
-    failed_verification_count INTEGER DEFAULT 0,
-    locked_until INTEGER
-  )`,
-  `CREATE TABLE IF NOT EXISTS passkeys (
-    id TEXT PRIMARY KEY,
-    name TEXT,
-    public_key TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    credential_id TEXT NOT NULL UNIQUE,
-    counter INTEGER NOT NULL,
-    device_type TEXT NOT NULL,
-    backed_up INTEGER NOT NULL,
-    transports TEXT,
-    created_at INTEGER DEFAULT (unixepoch() * 1000),
-    aaguid TEXT
-  )`,
-  `CREATE TABLE IF NOT EXISTS organizations (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    slug TEXT NOT NULL UNIQUE,
-    logo TEXT,
-    metadata TEXT,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    updated_at INTEGER
-  )`,
-  `CREATE TABLE IF NOT EXISTS members (
-    id TEXT PRIMARY KEY,
-    organization_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'member',
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
-  )`,
-  `CREATE TABLE IF NOT EXISTS teams (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    organization_id TEXT NOT NULL,
-    member_count INTEGER NOT NULL DEFAULT 0,
-    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-    updated_at INTEGER
-  )`,
-  `CREATE TABLE IF NOT EXISTS team_members (
-    id TEXT PRIMARY KEY,
-    team_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    membership_key TEXT,
-    created_at INTEGER DEFAULT (unixepoch() * 1000)
-  )`,
-  `CREATE TABLE IF NOT EXISTS links (
-    id TEXT PRIMARY KEY,
-    organization_id TEXT NOT NULL,
-    team_id TEXT NOT NULL,
-    slug TEXT NOT NULL UNIQUE,
-    target_url TEXT NOT NULL,
-    redirect_status INTEGER NOT NULL DEFAULT 302,
-    is_active INTEGER NOT NULL DEFAULT 1,
-    title TEXT,
-    description TEXT,
-    created_by TEXT NOT NULL,
-    updated_by TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS link_target_history (
-    id TEXT PRIMARY KEY,
-    link_id TEXT NOT NULL,
-    old_target_url TEXT,
-    new_target_url TEXT NOT NULL,
-    changed_by TEXT NOT NULL,
-    changed_at INTEGER NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS click_events (
-    id TEXT PRIMARY KEY,
-    link_id TEXT NOT NULL,
-    clicked_at INTEGER NOT NULL,
-    ip_hash TEXT NOT NULL,
-    user_agent TEXT,
-    referer TEXT,
-    country TEXT,
-    region TEXT,
-    city TEXT,
-    colo TEXT,
-    asn INTEGER,
-    host TEXT NOT NULL,
-    path TEXT NOT NULL,
-    query_string TEXT,
-    redirect_status_used INTEGER NOT NULL
-  )`,
-];
 
 type AuthSession = {
   cookie: string;
@@ -297,12 +156,6 @@ const seedProtectedFixture = async (userId: string): Promise<ProtectedFixture> =
 
   return { organizationId, teamId, otherTeamId, linkId, otherLinkId };
 };
-
-beforeAll(async () => {
-  for (const statement of schemaStatements) {
-    await env.DB.prepare(statement).run();
-  }
-});
 
 describe("protected endpoint authentication", () => {
   const cases: Array<{ name: string; input: string; init?: RequestInit }> = [

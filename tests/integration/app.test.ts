@@ -1,5 +1,5 @@
 import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:test";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createApp } from "../../src/worker/app";
 import type { AppBindings } from "../../src/worker/lib/types";
 
@@ -57,80 +57,6 @@ describe("app", () => {
 
   const request = (input: string | Request, init?: RequestInit) =>
     app.request(input, init, testEnv);
-
-  beforeAll(async () => {
-    await env.DB.prepare(`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        email TEXT NOT NULL UNIQUE,
-        email_verified INTEGER NOT NULL DEFAULT 0,
-        image TEXT,
-        two_factor_enabled INTEGER DEFAULT 0,
-        created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-        updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
-      );
-    `).run();
-    await env.DB.prepare(`
-      CREATE TABLE IF NOT EXISTS sessions (
-        id TEXT PRIMARY KEY,
-        expires_at INTEGER NOT NULL,
-        token TEXT NOT NULL UNIQUE,
-        created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-        updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-        ip_address TEXT,
-        user_agent TEXT,
-        user_id TEXT NOT NULL,
-        active_organization_id TEXT,
-        active_team_id TEXT
-      );
-    `).run();
-    await env.DB.prepare(`
-      CREATE TABLE IF NOT EXISTS accounts (
-        id TEXT PRIMARY KEY,
-        account_id TEXT NOT NULL,
-        provider_id TEXT NOT NULL,
-        issuer TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        access_token TEXT,
-        refresh_token TEXT,
-        id_token TEXT,
-        access_token_expires_at INTEGER,
-        refresh_token_expires_at INTEGER,
-        scope TEXT,
-        password TEXT,
-        created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-        updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
-      );
-    `).run();
-    await env.DB.prepare(`
-      CREATE TABLE IF NOT EXISTS verifications (
-        id TEXT PRIMARY KEY,
-        identifier TEXT NOT NULL,
-        value TEXT NOT NULL,
-        expires_at INTEGER NOT NULL,
-        created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-        updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
-      );
-    `).run();
-    await env.DB.prepare(`
-      CREATE TABLE IF NOT EXISTS links (
-        id TEXT PRIMARY KEY,
-        organization_id TEXT NOT NULL,
-        team_id TEXT NOT NULL,
-        slug TEXT NOT NULL UNIQUE,
-        target_url TEXT NOT NULL,
-        redirect_status INTEGER NOT NULL DEFAULT 302,
-        is_active INTEGER NOT NULL DEFAULT 1,
-        title TEXT,
-        description TEXT,
-        created_by TEXT NOT NULL,
-        updated_by TEXT NOT NULL,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
-      );
-    `).run();
-  });
 
   const signUp = async () => {
     const suffix = crypto.randomUUID();

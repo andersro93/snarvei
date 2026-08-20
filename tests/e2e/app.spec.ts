@@ -48,6 +48,7 @@ test("user can create and manage a link end to end", async ({ page }) => {
 
   await page.getByRole("link", { name: "Organization" }).click();
   await page.getByRole("button", { name: "Create team" }).click();
+  await page.getByTestId("team-name-input").fill(teamName);
   await clickTestIdButton(page, "create-team-button");
   await expect(page.getByText(teamName)).toBeVisible();
   await expect(page.getByText(`Manage members, invitations, and teams for ${organizationName}.`)).toBeVisible();
@@ -90,8 +91,13 @@ test("user can create and manage a link end to end", async ({ page }) => {
   expect(redirectResponse.status()).toBe(302);
   expect(redirectResponse.headers()["location"]).toBe(updatedTarget);
 
+  // The click event is recorded asynchronously (waitUntil); wait for it via the API
+  // before asserting on the UI so the test does not race the insert.
+  const linkId = detailUrl.split("/links/")[1];
+  await expect
+    .poll(async () => ((await (await page.request.get(`/api/links/${linkId}/analytics`)).json()) as { totalClicks: number }).totalClicks)
+    .toBe(1);
   await page.goto(detailUrl);
-  await page.reload();
   await expect(page.getByTestId("analytics-total-clicks")).toHaveText("1");
   await expect(page.getByTestId("analytics-unique-visitors")).toHaveText("1");
   await expect(page.getByText(updatedTarget).first()).toBeVisible();
@@ -99,6 +105,42 @@ test("user can create and manage a link end to end", async ({ page }) => {
   await page.getByRole("button", { name: "Edit link" }).click();
   await clickTestIdButton(page, "delete-link-button");
   await expect(page).toHaveURL(new RegExp(`/app/${organizationSlug}/links$`));
+  await expect(page.getByText(updatedLinkTitle)).toHaveCount(0);
+  const afterDelete = await page.request.get(`/l/${slug}`, { maxRedirects: 0 });
+  expect(afterDelete.status()).toBe(404);
+  const apiAfterDelete = await page.request.get(`/api/links/${linkId}`);
+  expect(apiAfterDelete.status()).toBe(404);
+});
+
+test("existing user can sign in with email and password", async ({ page }) => {
+  const id = unique();
+  const email = `returning-${id}@example.com`;
+  const password = "Password123!";
+
+  const signUpResponse = await page.request.post("/api/auth/sign-up/email", {
+    data: { name: `Returning ${id}`, email, password },
+    headers: { origin: "http://127.0.0.1:4173" },
+  });
+  expect(signUpResponse.ok()).toBeTruthy();
+  await page.context().clearCookies();
+
+  await page.goto("/");
+  await page.getByTestId("auth-email-input").fill(email);
+  await page.getByTestId("auth-password-input").fill(password);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+
+  await expect(page).toHaveURL(/\/app\/select-organization$/);
+  await expect(page.getByText("Choose your organization")).toBeVisible();
+});
+
+test("wrong password is rejected", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("auth-email-input").fill(`nobody-${unique()}@example.com`);
+  await page.getByTestId("auth-password-input").fill("definitely-wrong");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+
+  await expect(page).not.toHaveURL(/select-organization/);
+  await expect(page.getByRole("alert")).toBeVisible();
 });
 
 test("user can open settings and update their profile name", async ({ page }) => {
