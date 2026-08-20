@@ -15,6 +15,7 @@
     "lint": "eslint .",
     "cf-typegen": "wrangler types",
     "db:generate": "drizzle-kit generate",
+    "db:check": "drizzle-kit check && drizzle-kit generate --name drift-check && git diff --exit-code --stat src/worker/db/migrations && echo 'migrations are in sync with schema.ts'",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "test": "vitest run",

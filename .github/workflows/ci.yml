@@ -41,6 +41,12 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      # Fails when src/worker/db/schema.ts changed without a committed migration
+      # (drizzle-kit would generate a new file) or when the journal/snapshots
+      # are inconsistent.
+      - name: Check migrations are in sync with the schema
+        run: pnpm db:check
+
       - name: Build
         run: pnpm build
 
