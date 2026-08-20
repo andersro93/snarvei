@@ -1,6 +1,7 @@
 import { OpenAPIHono, z } from "@hono/zod-openapi";
 import { and, eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
+import { NONCE, secureHeaders } from "hono/secure-headers";
 import { clickEvents, links } from "./db/schema";
 import { createAuth } from "./lib/auth";
 import { hashIp } from "./lib/crypto";
@@ -127,6 +128,15 @@ const registerPlainRoutesInOpenApi = (app: OpenAPIHono<{ Bindings: AppBindings; 
   });
 };
 
+/** Shared hardening headers for every Worker-handled response. */
+const baseSecurityHeaders = {
+  xFrameOptions: "DENY",
+  referrerPolicy: "strict-origin-when-cross-origin",
+  strictTransportSecurity: "max-age=31536000; includeSubDomains",
+  crossOriginResourcePolicy: "same-origin",
+  permissionsPolicy: { camera: [], microphone: [], geolocation: [], payment: [] },
+} satisfies Parameters<typeof secureHeaders>[0];
+
 export const createApp = () => {
   const app = new OpenAPIHono<{ Bindings: AppBindings; Variables: AppVariables }>({ defaultHook: validationHook });
 
@@ -134,6 +144,27 @@ export const createApp = () => {
   app.notFound(notFound);
 
   app.use("*", envMiddleware);
+  app.use("*", secureHeaders(baseSecurityHeaders));
+  // The docs page loads the Scalar bundle from jsDelivr and has an inline
+  // config script, so it gets its own CSP with a per-request nonce.
+  app.use(
+    "/scalar",
+    secureHeaders({
+      ...baseSecurityHeaders,
+      contentSecurityPolicy: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", NONCE, "https://cdn.jsdelivr.net"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.scalar.com", "https://cdn.jsdelivr.net"],
+        fontSrc: ["'self'", "data:", "https://fonts.scalar.com"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        objectSrc: ["'none'"],
+      },
+    }),
+  );
   app.use("/l/*", rateLimitMiddleware("redirect"));
   app.use("/api/auth/*", rateLimitMiddleware("auth"));
   app.use("/api/me", sessionMiddleware);
@@ -162,7 +193,7 @@ export const createApp = () => {
     },
   });
 
-  app.get("/scalar", (c) => c.html(renderScalarPage("/openapi.json")));
+  app.get("/scalar", (c) => c.html(renderScalarPage("/openapi.json", c.get("secureHeadersNonce") ?? "")));
 
   app.get("/api/me", async (c) => {
     const user = c.get("user");

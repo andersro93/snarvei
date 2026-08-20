@@ -1,4 +1,5 @@
-export const renderScalarPage = (openApiUrl: string) => `<!doctype html>
+/** Scalar API reference page. `nonce` must match the CSP set for this route. */
+export const renderScalarPage = (openApiUrl: string, nonce: string) => `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -15,8 +16,8 @@ export const renderScalarPage = (openApiUrl: string) => `<!doctype html>
   </head>
   <body>
     <div id="app"></div>
-    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
-    <script>
+    <script nonce="${nonce}" src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+    <script nonce="${nonce}">
       Scalar.createApiReference('#app', {
         url: '${openApiUrl}',
         theme: 'purple',
