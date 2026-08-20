@@ -60,10 +60,10 @@ test("user can create and manage a link end to end", async ({ page }) => {
   await expect(page).toHaveURL(new RegExp(`/app/${organizationSlug}/dashboard$`));
 
   await page.getByRole("link", { name: "Organization" }).click();
-  await page.getByRole("button", { name: "Create team" }).click();
+  await clickTestIdButton(page, "open-create-team-button");
   await page.getByTestId("team-name-input").fill(teamName);
   await clickTestIdButton(page, "create-team-button");
-  await expect(page.getByText(teamName)).toBeVisible();
+  await expect(page.getByTestId(`manage-team-${teamName}`)).toBeVisible();
   await expect(page.getByText(`Manage members, invitations, and teams for ${organizationName}.`)).toBeVisible();
 
   await page.getByRole("link", { name: "Links" }).click();
@@ -213,14 +213,15 @@ test("invited member accepts the invitation and only sees their team's links", a
 
   await page.getByRole("link", { name: "Organization" }).click();
   for (const teamName of ["Growth", "Ops"]) {
-    await page.getByRole("button", { name: "Create team" }).click();
+    await clickTestIdButton(page, "open-create-team-button");
     await page.getByTestId("team-name-input").fill(teamName);
     await clickTestIdButton(page, "create-team-button");
     await expect(page.getByTestId(`manage-team-${teamName}`)).toBeVisible();
+    await expect(page.getByTestId("team-name-input")).toHaveCount(0);
   }
 
   // Invite the member into the Growth team via the UI.
-  await page.getByRole("button", { name: "Invite member" }).click();
+  await clickTestIdButton(page, "open-invite-member-button");
   await page.getByTestId("invite-email-input").fill(inviteeEmail);
   await page.getByRole("combobox", { name: "Team (optional)" }).click();
   await page.getByRole("option", { name: "Growth" }).click();
@@ -275,7 +276,7 @@ test("invited member accepts the invitation and only sees their team's links", a
 
   // The member sees only the Growth team's link.
   await inviteePage.getByRole("link", { name: "Links" }).click();
-  await expect(inviteePage.getByText("Growth link")).toBeVisible();
+  await expect(inviteePage.getByText("Growth link").first()).toBeVisible();
   await expect(inviteePage.getByText("Ops link")).toHaveCount(0);
   const forbidden = await inviteePage.request.get(`/api/links/${opsLink.id}`);
   expect(forbidden.status()).toBe(403);
@@ -288,7 +289,7 @@ test("invited member accepts the invitation and only sees their team's links", a
   await expect(page.getByTestId("team-members-list")).toContainText(inviteeEmail);
 
   await inviteePage.reload();
-  await expect(inviteePage.getByText("Ops link")).toBeVisible();
+  await expect(inviteePage.getByText("Ops link").first()).toBeVisible();
   const allowed = await inviteePage.request.get(`/api/links/${opsLink.id}`);
   expect(allowed.status()).toBe(200);
 

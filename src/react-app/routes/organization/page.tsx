@@ -65,10 +65,10 @@ export function OrganizationPage() {
           <Typography color="text.secondary">Manage members, invitations, and teams for {activeOrganization?.name ?? "the active organization"}.</Typography>
         </Box>
         <Stack direction="row" spacing={1}>
-          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setCreateTeamOpen(true)}>
+          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setCreateTeamOpen(true)} data-testid="open-create-team-button">
             Create team
           </Button>
-          <Button variant="contained" startIcon={<PersonAddAlt1Icon />} onClick={() => setInviteOpen(true)}>
+          <Button variant="contained" startIcon={<PersonAddAlt1Icon />} onClick={() => setInviteOpen(true)} data-testid="open-invite-member-button">
             Invite member
           </Button>
         </Stack>
