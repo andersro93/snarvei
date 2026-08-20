@@ -1,6 +1,6 @@
 import AddIcon from "@mui/icons-material/Add";
 import { Box, Button, Paper, Stack, Typography } from "@mui/material";
-import { DataGrid, type GridColDef, type GridEventListener, type GridRenderCellParams, type GridRowParams, Toolbar } from "@mui/x-data-grid";
+import { DataGrid, type GridColDef, type GridRenderCellParams, type GridRowParams, Toolbar } from "@mui/x-data-grid";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CopyButton, CreateLinkDialog } from "../../components/dialogs";
@@ -9,7 +9,7 @@ import { buildLinksPath } from "../../lib/routes";
 
 export function LinksPage() {
   const navigate = useNavigate();
-  const { activeOrganization, appOrigin, createLink, links, loadingLinks, submitting, teams } = useWorkspace();
+  const { activeOrganization, appOrigin, createLink, links, loadingLinks, submitting, teams, activeTeamId } = useWorkspace();
   const [createLinkOpen, setCreateLinkOpen] = useState(false);
 
   const columns = useMemo<GridColDef[]>(
@@ -55,8 +55,6 @@ export function LinksPage() {
     navigate(buildLinksPath(activeOrganization, String(params.id)));
   };
 
-  const handleRowKeyDown: GridEventListener<"rowClick"> = () => undefined;
-
   return (
     <Stack spacing={3}>
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ justifyContent: "space-between", alignItems: { md: "center" } }}>
@@ -85,7 +83,6 @@ export function LinksPage() {
             showToolbar
             slots={{ toolbar: Toolbar }}
             onRowClick={handleRowClick}
-            onRowDoubleClick={handleRowKeyDown}
             sx={{
               border: 0,
               '& .MuiDataGrid-cell': { cursor: "pointer" },
@@ -98,7 +95,7 @@ export function LinksPage() {
       <CreateLinkDialog
         open={createLinkOpen}
         teams={teams}
-        activeTeamId={teams[0]?.id ?? null}
+        activeTeamId={activeTeamId ?? teams[0]?.id ?? null}
         submitting={submitting === "create-link"}
         onClose={() => setCreateLinkOpen(false)}
         onSubmit={async (values) => {

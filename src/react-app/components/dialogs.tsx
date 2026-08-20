@@ -486,9 +486,13 @@ export function CopyButton({ value }: { value: string }) {
         aria-label={`Copy ${value}`}
         onClick={async (event) => {
           event.stopPropagation();
-          await navigator.clipboard.writeText(value);
-          setCopied(true);
-          window.setTimeout(() => setCopied(false), 1200);
+          try {
+            await navigator.clipboard.writeText(value);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1200);
+          } catch {
+            // Clipboard access can be denied (insecure context / permissions); the value stays visible to copy manually.
+          }
         }}
       >
         <ContentCopyIcon fontSize="inherit" />

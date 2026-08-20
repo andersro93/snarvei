@@ -18,6 +18,7 @@ export function OrganizationPage() {
     createTeam,
     invitations,
     loadingInvitations,
+    loadingMembers,
     members,
     refreshOrganizationData,
     submitting,
@@ -76,7 +77,7 @@ export function OrganizationPage() {
 
       <Paper sx={{ border: "1px solid rgba(255,255,255,0.08)", p: 1.5 }}>
         <Box sx={{ height: 540 }}>
-          <DataGrid rows={members} columns={columns} showToolbar slots={{ toolbar: Toolbar }} sx={{ border: 0 }} />
+          <DataGrid rows={members} columns={columns} loading={loadingMembers} showToolbar slots={{ toolbar: Toolbar }} sx={{ border: 0 }} />
         </Box>
       </Paper>
 

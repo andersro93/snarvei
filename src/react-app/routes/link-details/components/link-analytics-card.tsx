@@ -42,6 +42,41 @@ export function LinkAnalyticsCard(props: {
               <Alert severity="info">No click analytics recorded yet.</Alert>
             )}
           </Stack>
+          {props.analytics.topReferrers.length ? (
+            <Stack spacing={1}>
+              <Typography variant="subtitle2">Top referrers</Typography>
+              {props.analytics.topReferrers.map((entry) => (
+                <Paper key={`${entry.referer}-${entry.clicks}`} sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <Stack direction="row" sx={{ justifyContent: "space-between", gap: 2 }}>
+                    <Typography sx={{ overflow: "hidden", textOverflow: "ellipsis" }}>{entry.referer ?? "Direct / unknown"}</Typography>
+                    <Typography color="text.secondary">{entry.clicks}</Typography>
+                  </Stack>
+                </Paper>
+              ))}
+            </Stack>
+          ) : null}
+          {props.analytics.clicksByDay.length ? (
+            <Stack spacing={1}>
+              <Typography variant="subtitle2">Clicks per day</Typography>
+              <Paper sx={{ p: 2, border: "1px solid rgba(255,255,255,0.06)" }}>
+                <Stack spacing={0.5}>
+                  {props.analytics.clicksByDay.map((entry) => (
+                    <Stack key={entry.day} direction="row" sx={{ justifyContent: "space-between" }}>
+                      <Typography variant="body2">{entry.day}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {entry.clicks}
+                      </Typography>
+                    </Stack>
+                  ))}
+                </Stack>
+              </Paper>
+              {props.analytics.range.from ? (
+                <Typography variant="caption" color="text.secondary">
+                  Window: {new Date(props.analytics.range.from).toLocaleDateString()} – {new Date(props.analytics.range.to).toLocaleDateString()}
+                </Typography>
+              ) : null}
+            </Stack>
+          ) : null}
         </Stack>
       </CardContent>
     </Card>

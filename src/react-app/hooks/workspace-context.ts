@@ -22,7 +22,6 @@ export type WorkspaceContextValue = {
   activeOrganization: OrganizationSummary | null;
   teams: Team[];
   activeTeamId: string | null;
-  activeTeam: Team | null;
   members: Member[];
   invitations: Invitation[];
   links: Link[];
@@ -50,11 +49,9 @@ export type WorkspaceContextValue = {
   switchOrganization: (organizationId: string) => Promise<void>;
   createOrganization: (input: { name: string; slug: string }) => Promise<string | null>;
   createTeam: (input: { name: string }) => Promise<string | null>;
-  setActiveTeamId: (teamId: string | null) => void;
   setSelectedLinkId: (linkId: string | null) => void;
   refreshOrganizations: (options?: { silent?: boolean }) => Promise<void>;
   refreshOrganizationData: (organizationId: string, options?: { silent?: boolean }) => Promise<void>;
-  refreshLinks: (organizationId: string, options?: { silent?: boolean }) => Promise<void>;
   refreshSelectedLinkData: (linkId: string, options?: { silent?: boolean }) => Promise<void>;
   createLink: (input: {
     teamId: string;
