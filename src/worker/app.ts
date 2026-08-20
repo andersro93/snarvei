@@ -4,6 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import { NONCE, secureHeaders } from "hono/secure-headers";
 import { clickEvents, links } from "./db/schema";
 import { type AuthDeps, createAuth } from "./lib/auth";
+import { sanitizeQueryString, sanitizeReferer, sanitizeUserAgent } from "./lib/click-privacy";
 import { hashIp } from "./lib/crypto";
 import { envMiddleware, ipHashPepper } from "./lib/env";
 import { errorJson, notFound, onError, validationHook } from "./lib/errors";
@@ -326,8 +327,8 @@ export const createApp = (deps: AppDeps = {}) => {
         linkId: link.id,
         clickedAt: new Date(),
         ipHash,
-        userAgent: c.req.header("user-agent") ?? null,
-        referer: c.req.header("referer") ?? null,
+        userAgent: sanitizeUserAgent(c.req.header("user-agent")),
+        referer: sanitizeReferer(c.req.header("referer")),
         country: cf?.country ?? null,
         region: cf?.region ?? null,
         city: cf?.city ?? null,
@@ -335,7 +336,7 @@ export const createApp = (deps: AppDeps = {}) => {
         asn: cf?.asn ?? null,
         host: url.host,
         path: url.pathname,
-        queryString: url.search ? url.search.slice(1) : null,
+        queryString: sanitizeQueryString(url.search ? url.search.slice(1) : null),
         redirectStatusUsed: link.redirectStatus,
       });
     };

@@ -64,7 +64,7 @@ These decisions are already made and should be treated as defaults unless the us
 5. Default redirect status is `302`.
 6. Support `301`, `302`, and `307`.
 7. Link target changes must be recorded in history.
-8. Click analytics should store hashed IP only, never raw IP.
+8. Click analytics should store hashed IP only, never raw IP. Other click fields are minimised too: only `utm_*` query parameters are kept, the referer is stored without query string/fragment/credentials, and the user agent is capped at 256 characters (see `src/worker/lib/click-privacy.ts`).
 9. Click analytics should retain data for as long as the Link exists.
 10. Deleting a Link should also delete its analytics and target history.
 11. Activation/deactivation is manual in V1.
