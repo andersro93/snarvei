@@ -87,7 +87,9 @@ const schemaStatements = [
     user_id TEXT NOT NULL,
     secret TEXT NOT NULL,
     backup_codes TEXT NOT NULL,
-    verified INTEGER NOT NULL DEFAULT 0
+    verified INTEGER NOT NULL DEFAULT 0,
+    failed_verification_count INTEGER DEFAULT 0,
+    locked_until INTEGER
   )`,
   `CREATE TABLE IF NOT EXISTS passkeys (
     id TEXT PRIMARY KEY,
@@ -122,6 +124,7 @@ const schemaStatements = [
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     organization_id TEXT NOT NULL,
+    member_count INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
     updated_at INTEGER
   )`,
@@ -129,6 +132,7 @@ const schemaStatements = [
     id TEXT PRIMARY KEY,
     team_id TEXT NOT NULL,
     user_id TEXT NOT NULL,
+    membership_key TEXT,
     created_at INTEGER DEFAULT (unixepoch() * 1000)
   )`,
   `CREATE TABLE IF NOT EXISTS links (

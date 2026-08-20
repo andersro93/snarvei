@@ -1,4 +1,4 @@
-import { betterAuth } from "better-auth";
+import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { passkey } from "@better-auth/passkey";
 import { organization, twoFactor } from "better-auth/plugins";
@@ -62,13 +62,18 @@ const createTrustedOrigins = (baseUrl: string) => {
   };
 };
 
-export const createAuth = (env: AppBindings): AuthInstance => {
+/**
+ * Build the Better Auth options for a given environment. Kept separate from
+ * `createAuth` so tests can introspect the configuration (plugins, schema
+ * expectations) without instantiating the auth runtime.
+ */
+export const createAuthOptions = (env: AppBindings): BetterAuthOptions => {
   const db = createDb(env.DB);
   const baseUrl = env.APP_URL || "http://localhost:8787";
   const baseOrigin = new URL(baseUrl).origin;
   const relyingPartyId = new URL(baseUrl).hostname;
 
-  return betterAuth({
+  return {
     secret: env.AUTH_SECRET,
     baseURL: baseUrl,
     appName: env.APP_NAME || "Snarvei",
@@ -141,5 +146,7 @@ export const createAuth = (env: AppBindings): AuthInstance => {
         },
       }),
     ],
-  }) as AuthInstance;
+  };
 };
+
+export const createAuth = (env: AppBindings): AuthInstance => betterAuth(createAuthOptions(env)) as AuthInstance;
