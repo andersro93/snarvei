@@ -22,10 +22,12 @@ describe("Better Auth schema compatibility", () => {
     teamMember: "teamMembers",
     twoFactor: "twoFactors",
     passkey: "passkeys",
+    rateLimit: "rateLimits",
   };
 
   const options = createAuthOptions({
     DB: {} as D1Database,
+    RATE_LIMIT: {} as RateLimit,
     PROFILE_IMAGES: {} as R2Bucket,
     AUTH_SECRET: "test-secret-test-secret-test-secret-1234",
     APP_URL: "http://localhost:8787",

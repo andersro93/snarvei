@@ -196,6 +196,18 @@ export const passkeys = sqliteTable(
   ],
 );
 
+// Better Auth rate limiter storage (rateLimit.storage = "database").
+export const rateLimits = sqliteTable(
+  "rate_limits",
+  {
+    id: text("id").primaryKey(),
+    key: text("key").notNull(),
+    count: integer("count").notNull(),
+    lastRequest: integer("last_request").notNull(),
+  },
+  (table) => [uniqueIndex("rate_limits_key_unique").on(table.key)],
+);
+
 export const teamMembers = sqliteTable(
   "team_members",
   {
@@ -340,6 +352,7 @@ export const schema = {
   teamMembers,
   twoFactors,
   passkeys,
+  rateLimits,
   links,
   linkTargetHistory,
   clickEvents,
