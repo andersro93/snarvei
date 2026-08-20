@@ -14,18 +14,26 @@ import { registerLinkRoutes } from "./routes/links";
 const PROFILE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const PROFILE_IMAGE_ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
-const extractProfileImageKey = (imageUrl: string | null | undefined) => {
+const profileImagePrefix = (userId: string) => `images/profile/${userId}/`;
+
+/**
+ * Resolve the R2 key behind a user's image URL. The `image` field is user
+ * editable (Better Auth `update-user`), so only keys inside the caller's own
+ * prefix are ever returned — anything else is treated as "no managed image".
+ */
+const extractOwnedProfileImageKey = (imageUrl: string | null | undefined, userId: string) => {
   if (!imageUrl) {
     return null;
   }
 
-  const marker = "/images/profile/";
+  const marker = `/${profileImagePrefix(userId)}`;
   const index = imageUrl.indexOf(marker);
   if (index === -1) {
     return null;
   }
 
-  return imageUrl.slice(index + 1);
+  const key = imageUrl.slice(index + 1);
+  return key.startsWith(profileImagePrefix(userId)) ? key : null;
 };
 
 const buildProfileImageUrl = (request: Request, key: string) => `${new URL(request.url).origin}/${key}`;
@@ -42,6 +50,7 @@ export const createApp = () => {
   const app = new OpenAPIHono<{ Bindings: AppBindings; Variables: AppVariables }>();
 
   app.use("/api/me", sessionMiddleware);
+  app.use("/api/me/*", sessionMiddleware);
   app.use("/api/organizations/*", sessionMiddleware);
   app.use("/api/teams/*", sessionMiddleware);
   app.use("/api/links", sessionMiddleware);
@@ -92,7 +101,7 @@ export const createApp = () => {
       throw new HTTPException(400, { message: "Profile image must be 5MB or smaller" });
     }
 
-    const key = `images/profile/${user.id}/${crypto.randomUUID()}`;
+    const key = `${profileImagePrefix(user.id)}${crypto.randomUUID()}`;
     await c.env.PROFILE_IMAGES.put(key, await file.arrayBuffer(), {
       httpMetadata: {
         contentType: file.type,
@@ -106,7 +115,7 @@ export const createApp = () => {
     const imageUrl = buildProfileImageUrl(c.req.raw, key);
     await updateProfileImage(auth, c.req.raw.headers, imageUrl);
 
-    const previousKey = extractProfileImageKey(user.image);
+    const previousKey = extractOwnedProfileImageKey(user.image, user.id);
     if (previousKey && previousKey !== key) {
       c.executionCtx.waitUntil(c.env.PROFILE_IMAGES.delete(previousKey));
     }
@@ -117,7 +126,7 @@ export const createApp = () => {
   app.delete("/api/me/profile-image", async (c) => {
     const user = requireUser(c);
     const auth = createAuth(c.env);
-    const previousKey = extractProfileImageKey(user.image);
+    const previousKey = extractOwnedProfileImageKey(user.image, user.id);
 
     await updateProfileImage(auth, c.req.raw.headers, null);
 
