@@ -228,9 +228,9 @@ function CreateLinkDialogForm({
               value={redirectStatus}
               onChange={(event) => setRedirectStatus(event.target.value as 301 | 302 | 307)}
             >
-              <MenuItem value={301}>301</MenuItem>
-              <MenuItem value={302}>302</MenuItem>
-              <MenuItem value={307}>307</MenuItem>
+              <MenuItem value={302}>302 — temporary (default)</MenuItem>
+              <MenuItem value={307}>307 — temporary, preserves request method</MenuItem>
+              <MenuItem value={301}>301 — permanent (browsers may cache it and ignore later target changes)</MenuItem>
             </Select>
           </FormControl>
         </Stack>
@@ -378,9 +378,9 @@ function EditLinkDialogForm({
               value={redirectStatus}
               onChange={(event) => setRedirectStatus(event.target.value as 301 | 302 | 307)}
             >
-              <MenuItem value={301}>301</MenuItem>
-              <MenuItem value={302}>302</MenuItem>
-              <MenuItem value={307}>307</MenuItem>
+              <MenuItem value={302}>302 — temporary (default)</MenuItem>
+              <MenuItem value={307}>307 — temporary, preserves request method</MenuItem>
+              <MenuItem value={301}>301 — permanent (browsers may cache it and ignore later target changes)</MenuItem>
             </Select>
           </FormControl>
           <FormControl>

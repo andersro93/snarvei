@@ -163,6 +163,10 @@ export const createApp = () => {
       .where(and(eq(links.slug, slug), eq(links.isActive, true)))
       .limit(1);
 
+    // Never let browsers/CDNs cache redirects (or misses): the product promise
+    // is that a distributed short link can be retargeted or deactivated later.
+    c.header("cache-control", "no-store");
+
     if (!link) {
       return c.text("Link not found", 404);
     }
