@@ -47,6 +47,9 @@ export const accounts = sqliteTable(
     id: text("id").primaryKey(),
     accountId: text("account_id").notNull(),
     providerId: text("provider_id").notNull(),
+    // Better Auth >= 1.7 scopes account identity by (issuer, accountId).
+    // Email/password accounts use the issuer "local:credential".
+    issuer: text("issuer").notNull(),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -62,7 +65,10 @@ export const accounts = sqliteTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [index("accounts_user_id_idx").on(table.userId)],
+  (table) => [
+    index("accounts_user_id_idx").on(table.userId),
+    uniqueIndex("accounts_issuer_account_id_unique").on(table.issuer, table.accountId),
+  ],
 );
 
 export const verifications = sqliteTable(

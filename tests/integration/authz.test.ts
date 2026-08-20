@@ -62,6 +62,7 @@ const schemaStatements = [
     id TEXT PRIMARY KEY,
     account_id TEXT NOT NULL,
     provider_id TEXT NOT NULL,
+    issuer TEXT NOT NULL,
     user_id TEXT NOT NULL,
     access_token TEXT,
     refresh_token TEXT,
