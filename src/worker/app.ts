@@ -259,7 +259,13 @@ export const createApp = (deps: AppDeps = {}) => {
     });
 
     const imageUrl = buildProfileImageUrl(c.req.raw, key);
-    await updateProfileImage(auth, c.req.raw.headers, imageUrl);
+    try {
+      await updateProfileImage(auth, c.req.raw.headers, imageUrl);
+    } catch (error) {
+      // Do not leave an orphaned object behind when the profile update fails.
+      c.executionCtx.waitUntil(c.env.PROFILE_IMAGES.delete(key));
+      throw error;
+    }
 
     const previousKey = extractOwnedProfileImageKey(user.image, user.id);
     if (previousKey && previousKey !== key) {

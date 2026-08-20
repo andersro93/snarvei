@@ -2,8 +2,14 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "snarvei",
   "main": "./src/worker/index.ts",
-  "compatibility_date": "2025-10-08",
+  "compatibility_date": "2026-08-01",
   "compatibility_flags": ["nodejs_compat"],
+  // The Worker is reachable only through its custom domain: no workers.dev
+  // subdomain and no version preview URLs (they would be a second, unbranded
+  // auth origin). Domains are declared here so infrastructure stays in code.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "snarvei.ros-nett.com", "custom_domain": true }],
   "observability": {
     "enabled": true
   },
@@ -44,6 +50,9 @@
   "env": {
     "dev": {
       "name": "snarvei-dev",
+      "workers_dev": false,
+      "preview_urls": false,
+      "routes": [{ "pattern": "snarvei-dev.ros-nett.com", "custom_domain": true }],
       "d1_databases": [
         {
           "binding": "DB",

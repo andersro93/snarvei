@@ -53,21 +53,34 @@ const createInviteLink = (baseUrl: string, invitationId: string) =>
   `${baseUrl.replace(/\/$/, "")}/app/invitations/${encodeURIComponent(invitationId)}`;
 
 
-const createTrustedOrigins = (baseUrl: string) => {
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const isLoopbackOrigin = (origin: string) => {
+  try {
+    return LOOPBACK_HOSTS.has(new URL(origin).hostname);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Origins Better Auth accepts for state-changing requests. Deployed
+ * environments trust exactly APP_URL — never whatever host the Worker happens
+ * to be served on (workers.dev, version previews). When the app itself runs on
+ * loopback (local dev, e2e) the same-origin loopback request origin is also
+ * trusted so `localhost` vs `127.0.0.1` and differing ports keep working.
+ */
+export const createTrustedOrigins = (baseUrl: string) => {
   const baseOrigin = new URL(baseUrl).origin;
+  const baseIsLoopback = isLoopbackOrigin(baseOrigin);
 
   return async (request?: Request) => {
-    if (!request) {
+    if (!request || !baseIsLoopback) {
       return [baseOrigin];
     }
 
     const requestOrigin = new URL(request.url).origin;
     const headerOrigin = request.headers.get("origin");
-
-    // Only trust the incoming Origin when it matches the request host exactly.
-    // This keeps local same-origin E2E flows working without trusting arbitrary
-    // cross-origin requests against deployed environments.
-    if (headerOrigin && headerOrigin === requestOrigin && headerOrigin !== baseOrigin) {
+    if (headerOrigin && headerOrigin === requestOrigin && headerOrigin !== baseOrigin && isLoopbackOrigin(headerOrigin)) {
       return [baseOrigin, headerOrigin];
     }
 
