@@ -1,7 +1,7 @@
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { Alert, Box, Button, Chip, Divider, IconButton, Paper, Stack, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, CircularProgress, Divider, IconButton, Paper, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { EditLinkDialog } from "../../components/dialogs";
@@ -20,6 +20,7 @@ export function LinkDetailsPage() {
     getLinkById,
     history,
     loadingDetails,
+    loadingLinks,
     setSelectedLinkId,
     submitting,
     updateLink,
@@ -31,6 +32,14 @@ export function LinkDetailsPage() {
   useEffect(() => {
     setSelectedLinkId(params.linkId ?? null);
   }, [params.linkId, setSelectedLinkId]);
+
+  if (!link && loadingLinks) {
+    return (
+      <Box sx={{ minHeight: 240, display: "grid", placeItems: "center" }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   if (!link) {
     return (

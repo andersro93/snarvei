@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { authClient } from "../lib/auth-client";
 import type {
   AnalyticsSummary,
@@ -25,6 +25,47 @@ const refreshSession = async () => {
   return (await response.json()) as SessionData;
 };
 
+type OrganizationData = { teams: Team[] | null; members: Member[] | null; invitations: Invitation[] | null };
+
+/** Pure loaders (no React state) so effects can apply results with a cancellation guard. */
+const fetchOrganizationData = async (organizationId: string): Promise<OrganizationData> => {
+  const [teamsResult, membersResult, invitationsResult] = await Promise.allSettled([
+    authClient.organization.listTeams({ query: { organizationId } }),
+    authClient.organization.listMembers({ query: { organizationId } }),
+    authClient.organization.listInvitations({ query: { organizationId } }),
+  ]);
+  return {
+    teams: teamsResult.status === "fulfilled" ? readCollection<Team>(teamsResult.value.data, ["teams", "data"]) : null,
+    members: membersResult.status === "fulfilled" ? readCollection<Member>(membersResult.value.data, ["members", "data"]) : null,
+    invitations:
+      invitationsResult.status === "fulfilled" ? readCollection<Invitation>(invitationsResult.value.data, ["invitations", "data"]) : null,
+  };
+};
+
+const fetchLinks = async (organizationId: string): Promise<Link[] | null> => {
+  try {
+    const response = await fetch(`/api/organizations/${organizationId}/links`, { credentials: "include" });
+    return response.ok ? ((await response.json()) as Link[]) : null;
+  } catch {
+    return null;
+  }
+};
+
+const fetchLinkDetails = async (linkId: string): Promise<{ history: HistoryItem[]; analytics: AnalyticsSummary } | null> => {
+  try {
+    const [historyResponse, analyticsResponse] = await Promise.all([
+      fetch(`/api/links/${linkId}/history`, { credentials: "include" }),
+      fetch(`/api/links/${linkId}/analytics`, { credentials: "include" }),
+    ]);
+    if (!historyResponse.ok || !analyticsResponse.ok) {
+      return null;
+    }
+    return { history: (await historyResponse.json()) as HistoryItem[], analytics: (await analyticsResponse.json()) as AnalyticsSummary };
+  } catch {
+    return null;
+  }
+};
+
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const sessionQuery = authClient.useSession();
   const organizationsQuery = authClient.useListOrganizations();
@@ -43,11 +84,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [message, setMessage] = useState<AppMessage | null>(null);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [loadingOrganizations, setLoadingOrganizations] = useState(false);
-  const [loadingTeams, setLoadingTeams] = useState(false);
-  const [loadingMembers, setLoadingMembers] = useState(false);
-  const [loadingInvitations, setLoadingInvitations] = useState(false);
-  const [loadingLinks, setLoadingLinks] = useState(false);
-  const [loadingDetails, setLoadingDetails] = useState(false);
   const [loadedOrganizationId, setLoadedOrganizationId] = useState<string | null>(null);
   const [loadedLinksOrganizationId, setLoadedLinksOrganizationId] = useState<string | null>(null);
   const [loadedDetailsLinkId, setLoadedDetailsLinkId] = useState<string | null>(null);
@@ -143,19 +179,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const refreshOrganizationData = async (organizationId: string, options?: { silent?: boolean }) => {
-    setLoadingTeams(true);
-    setLoadingMembers(true);
-    setLoadingInvitations(true);
-
-    const [teamsResult, membersResult, invitationsResult] = await Promise.allSettled([
-      authClient.organization.listTeams({ query: { organizationId } }),
-      authClient.organization.listMembers({ query: { organizationId } }),
-      authClient.organization.listInvitations({ query: { organizationId } }),
-    ]);
-
-    if (teamsResult.status === "fulfilled") {
-      const nextTeams = readCollection<Team>(teamsResult.value.data, ["teams", "data"]);
+  const applyOrganizationData = useCallback((organizationId: string, data: OrganizationData, options?: { silent?: boolean }) => {
+    if (data.teams) {
+      const nextTeams = data.teams;
       setTeams(nextTeams);
       setActiveTeamId((current) => (current && nextTeams.some((team) => team.id === current) ? current : (nextTeams[0]?.id ?? null)));
     } else {
@@ -165,8 +191,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    if (membersResult.status === "fulfilled") {
-      setMembers(readCollection<Member>(membersResult.value.data, ["members", "data"]));
+    if (data.members) {
+      setMembers(data.members);
     } else {
       setMembers([]);
       if (!options?.silent) {
@@ -174,8 +200,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    if (invitationsResult.status === "fulfilled") {
-      setInvitations(readCollection<Invitation>(invitationsResult.value.data, ["invitations", "data"]));
+    if (data.invitations) {
+      setInvitations(data.invitations);
     } else {
       setInvitations([]);
       if (!options?.silent) {
@@ -184,100 +210,84 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }
 
     setLoadedOrganizationId(organizationId);
-    setLoadingTeams(false);
-    setLoadingMembers(false);
-    setLoadingInvitations(false);
+  }, []);
+
+  const refreshOrganizationData = async (organizationId: string, options?: { silent?: boolean }) => {
+    applyOrganizationData(organizationId, await fetchOrganizationData(organizationId), options);
   };
 
-  const refreshLinks = async (organizationId: string, options?: { silent?: boolean }) => {
-    setLoadingLinks(true);
-    try {
-      const response = await fetch(`/api/organizations/${organizationId}/links`, { credentials: "include" });
-      if (!response.ok) {
-        setLinks([]);
-        setLoadedLinksOrganizationId(organizationId);
-        if (!options?.silent) {
-          setMessage({ severity: "error", text: "Failed to load organization links." });
-        }
-        return;
-      }
-
-      const data = (await response.json()) as Link[];
-      setLinks(data);
-      setLoadedLinksOrganizationId(organizationId);
-    } catch {
-      setLinks([]);
-      setLoadedLinksOrganizationId(organizationId);
-      if (!options?.silent) {
-        setMessage({ severity: "error", text: "Failed to load organization links." });
-      }
-    } finally {
-      setLoadingLinks(false);
+  const applyLinks = useCallback((organizationId: string, data: Link[] | null, options?: { silent?: boolean }) => {
+    setLinks(data ?? []);
+    setLoadedLinksOrganizationId(organizationId);
+    if (!data && !options?.silent) {
+      setMessage({ severity: "error", text: "Failed to load organization links." });
     }
-  };
+  }, []);
 
-  const refreshSelectedLinkData = async (linkId: string, options?: { silent?: boolean }) => {
-    setLoadingDetails(true);
-    try {
-      const [historyResponse, analyticsResponse] = await Promise.all([
-        fetch(`/api/links/${linkId}/history`, { credentials: "include" }),
-        fetch(`/api/links/${linkId}/analytics`, { credentials: "include" }),
-      ]);
-
-      if (!historyResponse.ok || !analyticsResponse.ok) {
-        setHistory([]);
-        setAnalytics(initialAnalytics);
-        setLoadedDetailsLinkId(linkId);
-        if (!options?.silent) {
-          setMessage({ severity: "error", text: "Failed to load link history or analytics." });
-        }
-        return;
-      }
-
-      setHistory((await historyResponse.json()) as HistoryItem[]);
-      setAnalytics((await analyticsResponse.json()) as AnalyticsSummary);
+  const applyLinkDetails = useCallback(
+    (linkId: string, data: { history: HistoryItem[]; analytics: AnalyticsSummary } | null, options?: { silent?: boolean }) => {
+      setHistory(data?.history ?? []);
+      setAnalytics(data?.analytics ?? initialAnalytics);
       setLoadedDetailsLinkId(linkId);
-    } catch {
-      setHistory([]);
-      setAnalytics(initialAnalytics);
-      setLoadedDetailsLinkId(linkId);
-      if (!options?.silent) {
+      if (!data && !options?.silent) {
         setMessage({ severity: "error", text: "Failed to load link history or analytics." });
       }
-    } finally {
-      setLoadingDetails(false);
-    }
+    },
+    [],
+  );
+
+  const refreshSelectedLinkData = async (linkId: string, options?: { silent?: boolean }) => {
+    applyLinkDetails(linkId, await fetchLinkDetails(linkId), options);
   };
 
-  useEffect(() => {
-    if (!activeOrganizationId || !session) {
-      return;
-    }
-
-    queueMicrotask(() => {
-      void refreshOrganizationData(activeOrganizationId, { silent: true });
-    });
-  }, [activeOrganizationId, session]);
+  // Data loading effects: pure fetch, then apply unless a newer request superseded this one.
+  const sessionUserId = session?.user.id ?? null;
 
   useEffect(() => {
-    if (!activeOrganizationId || !session) {
+    if (!activeOrganizationId || !sessionUserId) {
       return;
     }
-
-    queueMicrotask(() => {
-      void refreshLinks(activeOrganizationId, { silent: true });
+    let cancelled = false;
+    void fetchOrganizationData(activeOrganizationId).then((data) => {
+      if (!cancelled) {
+        applyOrganizationData(activeOrganizationId, data, { silent: true });
+      }
     });
-  }, [activeOrganizationId, session]);
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrganizationId, applyOrganizationData, sessionUserId]);
 
   useEffect(() => {
-    if (!selectedLink?.id) {
+    if (!activeOrganizationId || !sessionUserId) {
       return;
     }
-
-    queueMicrotask(() => {
-      void refreshSelectedLinkData(selectedLink.id, { silent: true });
+    let cancelled = false;
+    void fetchLinks(activeOrganizationId).then((data) => {
+      if (!cancelled) {
+        applyLinks(activeOrganizationId, data, { silent: true });
+      }
     });
-  }, [selectedLink?.id]);
+    return () => {
+      cancelled = true;
+    };
+  }, [activeOrganizationId, applyLinks, sessionUserId]);
+
+  const selectedLinkIdForDetails = selectedLink?.id ?? null;
+  useEffect(() => {
+    if (!selectedLinkIdForDetails) {
+      return;
+    }
+    let cancelled = false;
+    void fetchLinkDetails(selectedLinkIdForDetails).then((data) => {
+      if (!cancelled) {
+        applyLinkDetails(selectedLinkIdForDetails, data, { silent: true });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [applyLinkDetails, selectedLinkIdForDetails]);
 
   const signUp = async (input: { name: string; email: string; password: string }) => {
     setSubmitting("signup");
@@ -532,6 +542,14 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setSubmitting(null);
     return true;
   };
+
+  // Loading is derived from what has been loaded for the current selection (no loading flags set inside effects).
+  const loadingOrganizationData = Boolean(activeOrganizationId) && loadedOrganizationId !== activeOrganizationId;
+  const loadingTeams = loadingOrganizationData;
+  const loadingMembers = loadingOrganizationData;
+  const loadingInvitations = loadingOrganizationData;
+  const loadingLinks = Boolean(activeOrganizationId) && loadedLinksOrganizationId !== activeOrganizationId;
+  const loadingDetails = Boolean(selectedLink) && loadedDetailsLinkId !== selectedLink?.id;
 
   const value: WorkspaceContextValue = {
     session,

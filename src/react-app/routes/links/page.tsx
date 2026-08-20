@@ -3,7 +3,8 @@ import { Box, Button, Paper, Stack, Typography } from "@mui/material";
 import { DataGrid, type GridColDef, type GridRenderCellParams, type GridRowParams, Toolbar } from "@mui/x-data-grid";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CopyButton, CreateLinkDialog } from "../../components/dialogs";
+import { CopyButton } from "../../components/copy-button";
+import { CreateLinkDialog } from "../../components/dialogs";
 import { useWorkspace } from "../../hooks/use-workspace-context";
 import { buildLinksPath } from "../../lib/routes";
 

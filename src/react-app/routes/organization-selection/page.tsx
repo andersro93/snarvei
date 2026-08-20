@@ -1,6 +1,6 @@
 import { Alert, Box, Button, CircularProgress, Paper, Stack, Typography } from "@mui/material";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { CreateOrganizationDialog } from "../../components/dialogs";
 import { useWorkspace } from "../../hooks/use-workspace-context";
 import { buildOrganizationPath } from "../../lib/routes";
@@ -13,8 +13,7 @@ export function OrganizationSelectionPage() {
   const [createOrganizationOpen, setCreateOrganizationOpen] = useState(false);
 
   if (!session) {
-    void navigate("/", { replace: true });
-    return null;
+    return <Navigate to="/" replace />;
   }
 
   return (
