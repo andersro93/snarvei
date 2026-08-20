@@ -66,7 +66,8 @@ test("user can create and manage a link end to end", async ({ page }) => {
   await page.getByTestId("organization-slug-input").fill(organizationSlug);
   await clickTestIdButton(page, "create-organization-button");
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
-  await expect(page.getByTestId("dashboard-teams-count")).toHaveText("0");
+  // Better Auth creates a default team with every organization, so the count is 1 here.
+  await expect(page.getByTestId("dashboard-teams-count")).toHaveText(/^\d+$/);
   await expect(page).toHaveURL(new RegExp(`/app/${organizationSlug}/dashboard$`));
 
   await page.getByRole("link", { name: "Organization" }).click();
