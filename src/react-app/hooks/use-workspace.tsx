@@ -415,6 +415,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const createLink = async (input: {
     teamId: string;
     targetUrl: string;
+    slug?: string;
     redirectStatus: 301 | 302 | 307;
     title?: string;
     description?: string;

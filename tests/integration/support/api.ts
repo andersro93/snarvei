@@ -98,7 +98,7 @@ export type LinkDto = {
 
 export const createLink = async (
   user: TestUser,
-  body: { teamId: string; targetUrl: string; redirectStatus?: 301 | 302 | 307; title?: string; description?: string },
+  body: { teamId: string; targetUrl: string; slug?: string; redirectStatus?: 301 | 302 | 307; title?: string; description?: string },
 ) => {
   const response = await request(`${ORIGIN}/api/links`, jsonInit("POST", body, user));
   expect(response.status, await response.clone().text()).toBe(201);

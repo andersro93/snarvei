@@ -20,6 +20,7 @@ export const authErrorResponses = {
 
 export const notFoundResponse = { 404: errorResponse("Not found") };
 export const badRequestResponse = { 400: errorResponse("Validation failed") };
+export const conflictResponse = { 409: errorResponse("Conflict") };
 
 /** All protected routes authenticate with the Better Auth session cookie. */
 export const cookieSecurity = [{ cookieAuth: [] }];
@@ -49,6 +50,23 @@ export const TargetUrlSchema = z
     { message: "Target URL must be an absolute http(s) URL without credentials" },
   )
   .openapi({ example: "https://example.com/landing" });
+
+const MIN_SLUG_LENGTH = 3;
+const MAX_SLUG_LENGTH = 64;
+
+/**
+ * Custom (vanity) slugs: lowercase letters, digits and single hyphens, no
+ * leading/trailing hyphen. Input is trimmed and lower-cased before validation;
+ * redirects match slugs exactly, so custom slugs are always stored lowercase.
+ */
+export const CustomSlugSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(MIN_SLUG_LENGTH, `Slug must be at least ${MIN_SLUG_LENGTH} characters`)
+  .max(MAX_SLUG_LENGTH, `Slug must be at most ${MAX_SLUG_LENGTH} characters`)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug may only contain lowercase letters, digits and single hyphens")
+  .openapi({ example: "q3-launch", description: "Optional custom slug. Omit to have one generated." });
 
 /** Optional free text; blank strings are treated as "not provided". */
 const optionalText = (max: number) =>
@@ -96,6 +114,7 @@ export const OrganizationLinksParamsSchema = z.object({
 
 export const CreateLinkBodySchema = z.object({
   teamId: z.string(),
+  slug: CustomSlugSchema.optional(),
   targetUrl: TargetUrlSchema,
   redirectStatus: z.union([z.literal(301), z.literal(302), z.literal(307)]).default(302),
   title: optionalText(120),
@@ -253,6 +272,7 @@ export const createLinkRoute = createRoute({
     ...badRequestResponse,
     ...authErrorResponses,
     ...notFoundResponse,
+    ...conflictResponse,
   },
 });
 

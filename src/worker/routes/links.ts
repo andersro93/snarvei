@@ -173,10 +173,11 @@ export const registerLinkRoutes = (app: AppRoute) => {
     const now = new Date();
 
     // Insert the link and its initial history row atomically (D1 batches are
-    // transactional). Slug uniqueness is enforced by the database; on the rare
-    // collision we simply generate a new slug and try again.
+    // transactional). Slug uniqueness is enforced by the database: a custom slug
+    // that is already taken is a 409, a generated one is simply regenerated.
+    const customSlug = body.slug;
     for (let attempt = 0; ; attempt += 1) {
-      const slug = generateSlug();
+      const slug = customSlug ?? generateSlug();
       try {
         await db.batch([
           db.insert(links).values({
@@ -205,8 +206,13 @@ export const registerLinkRoutes = (app: AppRoute) => {
         ]);
         break;
       } catch (error) {
-        if (isSlugCollision(error) && attempt < MAX_SLUG_ATTEMPTS - 1) {
-          continue;
+        if (isSlugCollision(error)) {
+          if (customSlug) {
+            throw new HTTPException(409, { message: "Slug is already taken" });
+          }
+          if (attempt < MAX_SLUG_ATTEMPTS - 1) {
+            continue;
+          }
         }
         throw error;
       }

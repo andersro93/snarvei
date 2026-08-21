@@ -99,6 +99,7 @@ export function LinksPage() {
         open={createLinkOpen}
         teams={teams}
         activeTeamId={activeTeamId ?? teams[0]?.id ?? null}
+        appOrigin={appOrigin}
         submitting={submitting === "create-link"}
         onClose={() => setCreateLinkOpen(false)}
         onSubmit={async (values) => {
