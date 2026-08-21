@@ -30,6 +30,26 @@ test("landing page renders product messaging", async ({ page }) => {
   await expect(page.getByText("Cloudflare Workers")).toBeVisible();
 });
 
+test("user can request a password reset link from the landing page", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Forgot password?" }).click();
+  await page.getByTestId("forgot-password-email-input").fill(`forgot-${unique()}@example.com`);
+  await clickTestIdButton(page, "forgot-password-button");
+  await expect(page.getByText(/If an account exists for that email/)).toBeVisible();
+});
+
+test("reset password page explains an invalid link and rejects a bogus token", async ({ page }) => {
+  await page.goto("/reset-password?error=INVALID_TOKEN");
+  await expect(page.getByText(/invalid or has expired/i)).toBeVisible();
+  await expect(page.getByRole("link", { name: /request a new link/i })).toBeVisible();
+
+  await page.goto("/reset-password?token=not-a-real-token");
+  await page.getByTestId("reset-password-input").fill("BrandNewPassword1!");
+  await page.getByTestId("reset-password-confirm-input").fill("BrandNewPassword1!");
+  await clickTestIdButton(page, "reset-password-button");
+  await expect(page.getByRole("alert")).toContainText(/invalid|expired/i);
+});
+
 test("API reference page renders from the self-hosted Scalar bundle", async ({ page }) => {
   const bundle = await page.request.get("/vendor/scalar-api-reference.js");
   expect(bundle.status()).toBe(200);

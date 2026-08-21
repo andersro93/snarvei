@@ -1,6 +1,7 @@
 /**
  * Transactional email. A provider-agnostic `EmailSender` is created from the
- * environment: Resend's HTTP API when `RESEND_API_KEY` + `EMAIL_FROM` are set,
+ * environment: the Cloudflare Email Service binding (`EMAIL`, see
+ * `send_email` in wrangler.jsonc) when it and `EMAIL_FROM` are present,
  * otherwise a no-op that logs a *redacted* event (never links or bodies, which
  * are bearer credentials). `EMAIL_DEV_LOG=true` logs full messages for local
  * development only.
@@ -20,34 +21,33 @@ export type EmailSender = (message: EmailMessage) => Promise<void>;
 type EmailEnv = {
   APP_NAME?: string;
   APP_URL?: string;
-  RESEND_API_KEY?: string;
+  /** Cloudflare Email Service `send_email` binding. */
+  EMAIL?: SendEmail;
+  /** Sender, e.g. `Snarvei <no-reply@example.com>`; must belong to a domain onboarded to Email Service. */
   EMAIL_FROM?: string;
   EMAIL_DEV_LOG?: string;
 };
-
-const RESEND_ENDPOINT = "https://api.resend.com/emails";
 
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char);
 
 export const createEmailSender = (env: EmailEnv): EmailSender => {
-  if (env.RESEND_API_KEY && env.EMAIL_FROM) {
-    const apiKey = env.RESEND_API_KEY;
+  if (env.EMAIL && env.EMAIL_FROM) {
+    const binding = env.EMAIL;
     const from = env.EMAIL_FROM;
     return async (message) => {
-      const response = await fetch(RESEND_ENDPOINT, {
-        method: "POST",
-        headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-        body: JSON.stringify({
+      try {
+        await binding.send({
           from,
-          to: [message.to],
+          to: message.to,
           subject: message.subject,
           text: message.text,
           ...(message.html ? { html: message.html } : {}),
-        }),
-      });
-      if (!response.ok) {
-        throw new Error(`Email provider rejected the message (HTTP ${response.status})`);
+        });
+      } catch (error) {
+        const code = typeof (error as { code?: unknown })?.code === "string" ? (error as { code: string }).code : "UNKNOWN";
+        log.warn("email.send_failed", { to: message.to, subject: message.subject, code });
+        throw new Error(`Email provider rejected the message (${code})`, { cause: error });
       }
     };
   }
@@ -60,7 +60,7 @@ export const createEmailSender = (env: EmailEnv): EmailSender => {
 
   return async (message) => {
     log.warn("email.not_configured", {
-      message: "No email provider configured (set RESEND_API_KEY and EMAIL_FROM); message dropped",
+      message: "No email provider configured (add the EMAIL send_email binding and set EMAIL_FROM); message dropped",
       to: message.to,
       subject: message.subject,
     });

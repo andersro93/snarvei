@@ -29,6 +29,23 @@ export function LandingPage() {
   const [twoFactorCode, setTwoFactorCode] = useState("");
   const [twoFactorMethod, setTwoFactorMethod] = useState<"totp" | "backup">("totp");
   const [twoFactorRequired, setTwoFactorRequired] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(searchParams.get("forgot") === "1");
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSubmitting, setForgotSubmitting] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
+  const resetDone = searchParams.get("reset") === "done";
+
+  const requestReset = async () => {
+    setForgotSubmitting(true);
+    setMessage(null);
+    const result = await authClient.requestPasswordReset({ email: forgotEmail.trim(), redirectTo: "/reset-password" });
+    setForgotSubmitting(false);
+    if (result.error) {
+      setMessage({ severity: "error", text: result.error.message ?? "Unable to send a reset link right now." });
+      return;
+    }
+    setForgotSent(true);
+  };
 
   if (sessionPending) {
     return (
@@ -82,6 +99,7 @@ export function LandingPage() {
               <Typography variant="h5" sx={{ fontWeight: 700 }}>
                 Sign in or create your first workspace
               </Typography>
+              {resetDone && !message ? <Alert severity="success">Password updated. Sign in with your new password.</Alert> : null}
               {message ? (
                 <Alert severity={message.severity} onClose={() => setMessage(null)}>
                   {message.text}
@@ -154,6 +172,60 @@ export function LandingPage() {
                   </Stack>
                 </Stack>
               </Box>
+              <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
+                <Button
+                  variant="text"
+                  onClick={() => {
+                    setForgotOpen((open) => !open);
+                    setForgotSent(false);
+                    if (!forgotEmail) {
+                      setForgotEmail(email);
+                    }
+                  }}
+                >
+                  Forgot password?
+                </Button>
+              </Stack>
+              {forgotOpen ? (
+                <Box
+                  component="form"
+                  noValidate
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void requestReset();
+                  }}
+                  sx={{ p: 2, borderRadius: 2, border: "1px solid rgba(255,255,255,0.12)" }}
+                >
+                  <Stack spacing={1.5}>
+                    <Typography variant="subtitle2">Reset your password</Typography>
+                    {forgotSent ? (
+                      <Alert severity="success">If an account exists for that email, we have sent a link to reset the password.</Alert>
+                    ) : (
+                      <>
+                        <TextField
+                          label="Email"
+                          type="email"
+                          value={forgotEmail}
+                          onChange={(event) => setForgotEmail(event.target.value)}
+                          autoComplete="email"
+                          required
+                          fullWidth
+                          size="small"
+                          slotProps={{ htmlInput: { "data-testid": "forgot-password-email-input" } }}
+                        />
+                        <Button
+                          type="submit"
+                          variant="outlined"
+                          disabled={forgotSubmitting || !forgotEmail.trim()}
+                          data-testid="forgot-password-button"
+                        >
+                          Send reset link
+                        </Button>
+                      </>
+                    )}
+                  </Stack>
+                </Box>
+              ) : null}
               <Button
                 variant="text"
                 onClick={() =>

@@ -27,6 +27,7 @@ const OrganizationSelectionPage = lazy(() =>
   import("./routes/organization-selection/page").then((m) => ({ default: m.OrganizationSelectionPage })),
 );
 const SettingsPage = lazy(() => import("./routes/settings/page").then((m) => ({ default: m.SettingsPage })));
+const ResetPasswordPage = lazy(() => import("./routes/reset-password/page").then((m) => ({ default: m.ResetPasswordPage })));
 
 const PageFallback = () => (
   <Box sx={{ minHeight: 240, display: "grid", placeItems: "center" }}>
@@ -133,6 +134,12 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <LandingPage />,
+    errorElement: <RouteError />,
+  },
+  {
+    // Public: reached from the password-reset email, the user has no session yet.
+    path: "/reset-password",
+    element: <ResetPasswordPage />,
     errorElement: <RouteError />,
   },
   {
