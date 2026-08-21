@@ -42,7 +42,13 @@
     "APP_URL": "https://snarvei.ros-nett.com",
     "APP_NAME": "Snarvei",
     "NODE_ENV": "production",
+    "EMAIL_FROM": "Snarvei <no-reply@ros-nett.com>",
   },
+  // Transactional email (invitations, verification, password reset) through
+  // Cloudflare Email Service. The sender domain must be onboarded under
+  // Compute -> Email Service -> Email Sending (Workers Paid). Locally the
+  // binding is simulated: messages are logged and written to miniflare's tmp dir.
+  "send_email": [{ "name": "EMAIL" }],
   // Edge rate limiting for the public redirect and auth endpoints (per client IP).
   "ratelimits": [
     {
@@ -74,7 +80,9 @@
         "APP_URL": "https://snarvei-dev.ros-nett.com",
         "APP_NAME": "Snarvei - DEV",
         "NODE_ENV": "production",
+        "EMAIL_FROM": "Snarvei DEV <no-reply@ros-nett.com>",
       },
+      "send_email": [{ "name": "EMAIL" }],
       "ratelimits": [
         {
           "name": "RATE_LIMIT",

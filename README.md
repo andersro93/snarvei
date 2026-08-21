@@ -291,12 +291,14 @@ Production auth also requires the Worker secret:
 
 1. `AUTH_SECRET`
 
-Transactional email (organization invitations, email verification, password reset, change-email confirmation) is sent through Resend and needs:
+Transactional email (organization invitations, email verification, password reset, change-email confirmation) is sent through [Cloudflare Email Service](https://developers.cloudflare.com/email-service/) and needs:
 
-1. `RESEND_API_KEY` (Worker secret: `wrangler secret put RESEND_API_KEY`, and `--env dev` for dev)
-2. `EMAIL_FROM` (var or secret, e.g. `Snarvei <no-reply@your-domain>`)
+1. the `send_email` binding `EMAIL` (declared in `wrangler.jsonc` for each environment)
+2. `EMAIL_FROM` (var in `wrangler.jsonc`, e.g. `Snarvei <no-reply@your-domain>`) on a domain you have onboarded under Compute → Email Service → Email Sending (Workers Paid; the zone must use Cloudflare DNS, the SPF/DKIM/DMARC records are added for you)
 
-Without them, messages are dropped and a redacted `email.not_configured` warning is logged — never the link itself. For local development set `EMAIL_DEV_LOG=true` in `.dev.vars` to log full messages instead.
+Without them, messages are dropped and a redacted `email.not_configured` warning is logged — never the link itself; provider rejections are logged as `email.send_failed` with Cloudflare's error code. Locally the binding is simulated (messages are logged and written to miniflare's temp dir); set `EMAIL_DEV_LOG=true` in `.dev.vars` to log full messages instead.
+
+Users who forget their password use "Forgot password?" on the landing page; the emailed link lands on `/reset-password`, and a successful reset signs the user out everywhere.
 
 See `.github/workflows/README.md` for the exact setup expected by the workflow.
 

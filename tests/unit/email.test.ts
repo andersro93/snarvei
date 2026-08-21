@@ -8,35 +8,35 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+type SentBuilder = { from: string; to: string; subject: string; text?: string; html?: string };
+
+const fakeBinding = (impl?: () => Promise<{ messageId: string }>) => {
+  const send = vi.fn<(builder: SentBuilder) => Promise<{ messageId: string }>>(impl ?? (async () => ({ messageId: "msg_123" })));
+  return { binding: { send } as unknown as SendEmail, send };
+};
+
 describe("createEmailSender", () => {
-  it("sends through the Resend HTTP API when configured", async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ id: "email_123" }), { status: 200 }));
-    vi.stubGlobal("fetch", fetchMock);
+  it("sends through the Cloudflare Email Service binding when it and EMAIL_FROM are configured", async () => {
+    const { binding, send } = fakeBinding();
+    const sendEmail = createEmailSender({ ...baseEnv, EMAIL: binding, EMAIL_FROM: "Snarvei <no-reply@snarvei.example>" });
+    await sendEmail({ to: "someone@example.com", subject: "Hello", text: "Plain", html: "<p>Plain</p>" });
 
-    const send = createEmailSender({ ...baseEnv, RESEND_API_KEY: "re_test", EMAIL_FROM: "Snarvei <no-reply@snarvei.example>" });
-    await send({ to: "someone@example.com", subject: "Hello", text: "Plain", html: "<p>Plain</p>" });
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe("https://api.resend.com/emails");
-    expect(init.method).toBe("POST");
-    expect((init.headers as Record<string, string>).authorization).toBe("Bearer re_test");
-    expect(JSON.parse(init.body as string)).toEqual({
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0]?.[0]).toEqual({
       from: "Snarvei <no-reply@snarvei.example>",
-      to: ["someone@example.com"],
+      to: "someone@example.com",
       subject: "Hello",
       text: "Plain",
       html: "<p>Plain</p>",
     });
   });
 
-  it("throws when the provider rejects the message", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response("nope", { status: 422 })),
-    );
-    const send = createEmailSender({ ...baseEnv, RESEND_API_KEY: "re_test", EMAIL_FROM: "no-reply@snarvei.example" });
-    await expect(send({ to: "x@example.com", subject: "s", text: "t" })).rejects.toThrow(/422/);
+  it("surfaces the provider error code when the binding rejects the message", async () => {
+    const { binding } = fakeBinding(async () => {
+      throw Object.assign(new Error("sender not verified"), { code: "E_SENDER_NOT_VERIFIED" });
+    });
+    const sendEmail = createEmailSender({ ...baseEnv, EMAIL: binding, EMAIL_FROM: "no-reply@snarvei.example" });
+    await expect(sendEmail({ to: "x@example.com", subject: "s", text: "t" })).rejects.toThrow(/E_SENDER_NOT_VERIFIED/);
   });
 
   it("logs a redacted event (no links or bodies) when no provider is configured", async () => {
@@ -50,6 +50,15 @@ describe("createEmailSender", () => {
     expect(line).toContain("x@example.com");
     expect(line).not.toContain("secret-id");
     expect(line).not.toContain("https://");
+  });
+
+  it("treats a binding without EMAIL_FROM as not configured", async () => {
+    const log = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { binding, send } = fakeBinding();
+    const sendEmail = createEmailSender({ ...baseEnv, EMAIL: binding });
+    await sendEmail({ to: "x@example.com", subject: "s", text: "t" });
+    expect(send).not.toHaveBeenCalled();
+    expect(String(log.mock.calls[0]?.[0])).toContain("email.not_configured");
   });
 
   it("logs the full message only when EMAIL_DEV_LOG is enabled (local development)", async () => {

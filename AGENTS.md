@@ -45,7 +45,7 @@ These decisions are already made and should be treated as defaults unless the us
 
 ### Authentication and Authorization
 
-1. V1 auth is email/password, with optional TOTP two-factor, passkeys and change-email (all shipped and tested; keep them). No SSO/SAML.
+1. V1 auth is email/password, with optional TOTP two-factor, passkeys, change-email and forgot-password (landing page → Better Auth `request-password-reset` → emailed link → public `/reset-password` page; all shipped and tested; keep them). No SSO/SAML. Transactional email goes through the Cloudflare Email Service `send_email` binding (`EMAIL`) + `EMAIL_FROM` var (see `src/worker/lib/email.ts`).
 2. Any authenticated user may create an organization in V1.
 3. Better Auth organizations are enabled.
 4. Better Auth teams are enabled.
