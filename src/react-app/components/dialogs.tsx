@@ -8,6 +8,7 @@ import {
   DialogTitle,
   FormControl,
   FormHelperText,
+  InputAdornment,
   InputLabel,
   MenuItem,
   Select,
@@ -121,10 +122,20 @@ export function CreateTeamDialog({
   );
 }
 
+export type CreateLinkFormValues = {
+  teamId: string;
+  targetUrl: string;
+  slug?: string;
+  redirectStatus: 301 | 302 | 307;
+  title?: string;
+  description?: string;
+};
+
 export function CreateLinkDialog({
   open,
   teams,
   activeTeamId,
+  appOrigin,
   submitting,
   onClose,
   onSubmit,
@@ -132,15 +143,10 @@ export function CreateLinkDialog({
   open: boolean;
   teams: Team[];
   activeTeamId: string | null;
+  appOrigin: string;
   submitting: boolean;
   onClose: () => void;
-  onSubmit: (values: {
-    teamId: string;
-    targetUrl: string;
-    redirectStatus: 301 | 302 | 307;
-    title?: string;
-    description?: string;
-  }) => Promise<boolean>;
+  onSubmit: (values: CreateLinkFormValues) => Promise<boolean>;
 }) {
   const defaultTeamId = activeTeamId ?? teams[0]?.id ?? "";
 
@@ -149,6 +155,7 @@ export function CreateLinkDialog({
       key={`${open}-${defaultTeamId}`}
       open={open}
       defaultTeamId={defaultTeamId}
+      appOrigin={appOrigin}
       submitting={submitting}
       teams={teams}
       onClose={onClose}
@@ -160,6 +167,7 @@ export function CreateLinkDialog({
 function CreateLinkDialogForm({
   open,
   defaultTeamId,
+  appOrigin,
   submitting,
   teams,
   onClose,
@@ -167,19 +175,15 @@ function CreateLinkDialogForm({
 }: {
   open: boolean;
   defaultTeamId: string;
+  appOrigin: string;
   submitting: boolean;
   teams: Team[];
   onClose: () => void;
-  onSubmit: (values: {
-    teamId: string;
-    targetUrl: string;
-    redirectStatus: 301 | 302 | 307;
-    title?: string;
-    description?: string;
-  }) => Promise<boolean>;
+  onSubmit: (values: CreateLinkFormValues) => Promise<boolean>;
 }) {
   const [teamId, setTeamId] = useState(defaultTeamId);
   const [targetUrl, setTargetUrl] = useState("");
+  const [slug, setSlug] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [redirectStatus, setRedirectStatus] = useState<301 | 302 | 307>(302);
@@ -205,6 +209,17 @@ function CreateLinkDialogForm({
             value={targetUrl}
             onChange={(event) => setTargetUrl(event.target.value)}
             slotProps={{ htmlInput: { "data-testid": "create-link-target-input" } }}
+          />
+          <TextField
+            label="Custom slug (optional)"
+            placeholder="q3-launch"
+            value={slug}
+            onChange={(event) => setSlug(event.target.value)}
+            helperText="Leave blank to generate one. Lowercase letters, digits and single hyphens, 3–64 characters."
+            slotProps={{
+              htmlInput: { "data-testid": "create-link-slug-input", autoCapitalize: "none", spellCheck: false },
+              input: { startAdornment: <InputAdornment position="start">{`${appOrigin}/l/`}</InputAdornment> },
+            }}
           />
           <TextField
             label="Title"
@@ -242,14 +257,14 @@ function CreateLinkDialogForm({
           disabled={!teamId || !targetUrl.trim() || submitting}
           data-testid="create-link-button"
           onClick={() => {
-            void onSubmit({ teamId, targetUrl, redirectStatus, title, description }).then((created) => {
+            void onSubmit({ teamId, targetUrl, slug: slug.trim() || undefined, redirectStatus, title, description }).then((created) => {
               if (created) {
                 onClose();
               }
             });
           }}
         >
-          Generate link
+          Create link
         </Button>
       </DialogActions>
     </Dialog>

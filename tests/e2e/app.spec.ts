@@ -50,6 +50,7 @@ test("user can create and manage a link end to end", async ({ page }) => {
   const initialTarget = `https://example.com/${id}`;
   const updatedTarget = `https://example.com/${id}/updated`;
   const linkTitle = `Campaign ${id}`;
+  const customSlug = `campaign-${id}`;
   const updatedLinkTitle = `Campaign ${id} Updated`;
 
   await page.goto("/");
@@ -81,6 +82,7 @@ test("user can create and manage a link end to end", async ({ page }) => {
   await expect(page).toHaveURL(new RegExp(`/app/${organizationSlug}/links$`));
   await page.getByRole("button", { name: "Create link" }).click();
   await page.getByTestId("create-link-target-input").fill(initialTarget);
+  await page.getByTestId("create-link-slug-input").fill(customSlug);
   await page.getByTestId("create-link-title-input").fill(linkTitle);
   await page.getByTestId("create-link-description-input").fill("Created from Playwright coverage");
   await Promise.all([
@@ -105,7 +107,7 @@ test("user can create and manage a link end to end", async ({ page }) => {
   const hrefText = await openLink.getAttribute("href");
   const hrefParts = hrefText?.split("/l/");
   const slug = hrefParts ? hrefParts[hrefParts.length - 1]?.trim() : undefined;
-  expect(slug).toBeTruthy();
+  expect(slug).toBe(customSlug);
 
   const redirectResponse = await page.request.get(`/l/${slug}`, {
     maxRedirects: 0,

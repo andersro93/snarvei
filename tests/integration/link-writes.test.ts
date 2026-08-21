@@ -77,3 +77,86 @@ describe("link creation robustness", () => {
     expect(await countRows("link_target_history", "link_id", link.id)).toBe(1);
   });
 });
+
+describe("custom slugs", () => {
+  it("creates a link with the requested slug and redirects through it", async () => {
+    const { owner, team } = await setupWorkspace();
+    const slug = `launch-${crypto.randomUUID().slice(0, 8)}`;
+    const response = await request(
+      `${ORIGIN}/api/links`,
+      jsonInit("POST", { teamId: team.id, targetUrl: "https://example.com/launch", slug }, owner),
+    );
+    expect(response.status, await response.clone().text()).toBe(201);
+    const created = (await response.json()) as { slug: string };
+    expect(created.slug).toBe(slug);
+
+    const redirect = await request(`${ORIGIN}/l/${slug}`);
+    expect(redirect.status).toBe(302);
+    expect(redirect.headers.get("location")).toBe("https://example.com/launch");
+  });
+
+  it("normalises the slug to lowercase and trims whitespace", async () => {
+    const { owner, team } = await setupWorkspace();
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const response = await request(
+      `${ORIGIN}/api/links`,
+      jsonInit("POST", { teamId: team.id, targetUrl: "https://example.com/x", slug: `  Summer-${suffix} ` }, owner),
+    );
+    expect(response.status, await response.clone().text()).toBe(201);
+    const created = (await response.json()) as { slug: string };
+    expect(created.slug).toBe(`summer-${suffix}`);
+    expect((await request(`${ORIGIN}/l/summer-${suffix}`)).status).toBe(302);
+  });
+
+  it("returns 409 when the slug is already taken, also across organizations, and leaves no orphan rows", async () => {
+    const first = await setupWorkspace();
+    const second = await setupWorkspace();
+    const slug = `taken-${crypto.randomUUID().slice(0, 8)}`;
+    await createLink(first.owner, { teamId: first.team.id, targetUrl: "https://example.com/a", slug });
+
+    const before = await env.DB.prepare("SELECT count(*) AS n FROM links").first<{ n: number }>();
+    for (const workspace of [first, second]) {
+      const response = await request(
+        `${ORIGIN}/api/links`,
+        jsonInit("POST", { teamId: workspace.team.id, targetUrl: "https://example.com/b", slug }, workspace.owner),
+      );
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({ error: "Slug is already taken" });
+    }
+    const after = await env.DB.prepare("SELECT count(*) AS n FROM links").first<{ n: number }>();
+    expect(after?.n).toBe(before?.n);
+    expect(await countRows("link_target_history", "new_target_url", "https://example.com/b")).toBe(0);
+  });
+
+  it("rejects malformed slugs with a 400 naming the field", async () => {
+    const { owner, team } = await setupWorkspace();
+    const response = await request(
+      `${ORIGIN}/api/links`,
+      jsonInit("POST", { teamId: team.id, targetUrl: "https://example.com/malformed-slug", slug: "Hello World!" }, owner),
+    );
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as { error: string };
+    expect(body.error).toMatch(/^slug: /);
+    expect(await countRows("link_target_history", "new_target_url", "https://example.com/malformed-slug")).toBe(0);
+  });
+
+  it("still generates a slug when none is provided", async () => {
+    const { owner, team } = await setupWorkspace();
+    const created = await createLink(owner, { teamId: team.id, targetUrl: "https://example.com/generated" });
+    expect(created.slug).toHaveLength(8);
+  });
+
+  it("ignores a slug sent on update — a distributed slug never changes", async () => {
+    const { owner, team } = await setupWorkspace();
+    const slug = `fixed-${crypto.randomUUID().slice(0, 8)}`;
+    const link = await createLink(owner, { teamId: team.id, targetUrl: "https://example.com/v1", slug });
+    const response = await request(
+      `${ORIGIN}/api/links/${link.id}`,
+      jsonInit("PATCH", { slug: "something-else", title: "Renamed" }, owner),
+    );
+    expect(response.status, await response.clone().text()).toBe(200);
+    const updated = (await response.json()) as { slug: string; title: string | null };
+    expect(updated.slug).toBe(slug);
+    expect(updated.title).toBe("Renamed");
+  });
+});

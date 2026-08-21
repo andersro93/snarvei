@@ -13,18 +13,19 @@ const STATUS_MESSAGES: Record<number, string> = {
   401: "Authentication required",
   403: "Forbidden",
   404: "Not found",
+  409: "Conflict",
   429: "Too many requests",
   500: "Internal Server Error",
 };
 
 /** Single JSON error shape for every non-2xx response produced by the app. */
-export const errorJson = (c: Context<AppEnv>, status: 400 | 401 | 403 | 404 | 429 | 500, error?: string, issues?: unknown[]) =>
+export const errorJson = (c: Context<AppEnv>, status: 400 | 401 | 403 | 404 | 409 | 429 | 500, error?: string, issues?: unknown[]) =>
   c.json<ErrorBody>({ error: error || STATUS_MESSAGES[status] || "Error", ...(issues ? { issues } : {}) }, status);
 
 /** Maps HTTPException (guards/handlers) to JSON; everything else is logged and masked. */
 export const onError: ErrorHandler<AppEnv> = (error, c) => {
   if (error instanceof HTTPException) {
-    const status = error.status as 400 | 401 | 403 | 404 | 429 | 500;
+    const status = error.status as 400 | 401 | 403 | 404 | 409 | 429 | 500;
     return errorJson(c, status, error.message);
   }
 

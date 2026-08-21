@@ -78,6 +78,27 @@ describe("OpenAPI document", () => {
     }
   });
 
+  it("documents the optional custom slug and the 409 conflict on link creation", async () => {
+    const doc = (await (await request(`${ORIGIN}/openapi.json`)).json()) as {
+      paths: Record<
+        string,
+        Record<
+          string,
+          {
+            responses: Record<string, unknown>;
+            requestBody?: { content: Record<string, { schema: { properties?: Record<string, unknown>; required?: string[] } }> };
+          }
+        >
+      >;
+    };
+    const op = doc.paths["/api/links"]?.post;
+    expect(op).toBeDefined();
+    expect(Object.keys(op!.responses)).toContain("409");
+    const schema = op!.requestBody?.content["application/json"]?.schema;
+    expect(schema?.properties).toHaveProperty("slug");
+    expect(schema?.required ?? []).not.toContain("slug");
+  });
+
   it("declares the session cookie security scheme and error responses on protected routes", async () => {
     const doc = await fetchDoc();
     expect(doc.components?.securitySchemes).toHaveProperty("cookieAuth");
